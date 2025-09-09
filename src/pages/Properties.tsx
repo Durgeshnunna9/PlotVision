@@ -7,6 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Building2, Plus, Search, Edit, Trash2, Eye, MapPin, Bed, Bath, Square } from 'lucide-react';
 import { mockProperties } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
+import { PropertyForm, PropertyFormData } from "../components/forms/PropertyForm";
 
 const Properties = () => {
   const { user } = useAuth();
@@ -45,11 +54,27 @@ const Properties = () => {
           </p>
         </div>
         {(user?.role === 'admin' || user?.role === 'agent') && (
-          <Button className="btn-primary">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Property
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="btn-primary">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Property
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Add a New Property</DialogTitle>
+              </DialogHeader>
+
+              {/* Here’s where you load your form */}
+              <PropertyForm onSubmit={function (data: PropertyFormData): void {
+                throw new Error('Function not implemented.');
+              } } />
+            </DialogContent>
+          </Dialog>
         )}
+        
       </div>
 
       {/* Filters */}
