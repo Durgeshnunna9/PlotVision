@@ -129,11 +129,7 @@
   }
 
   .property-card {
-    @apply card-premium p-0 overflow-hidden group cursor-pointer;
-  }
-
-  .property-card:hover .property-image {
-    @apply scale-110;
+    @apply card-premium p-0 overflow-hidden cursor-pointer;
   }
 
   .property-image {

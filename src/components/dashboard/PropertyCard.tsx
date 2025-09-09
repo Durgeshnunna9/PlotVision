@@ -24,12 +24,12 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
   };
 
   return (
-    <Card className="property-card">
+    <Card className="property-card group">
       <div className="relative h-48 overflow-hidden">
         <img 
           src={property.images[0] || 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400'} 
           alt={property.title}
-          className="property-image w-full h-full object-cover"
+          className="property-image w-full h-full object-cover group-hover:scale-110"
         />
         <Badge className={`absolute top-3 right-3 ${getStatusColor(property.status)}`}>
           {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
