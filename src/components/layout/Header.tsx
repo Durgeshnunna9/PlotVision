@@ -1,4 +1,5 @@
 import { Home, User, LogOut } from 'lucide-react';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,12 +10,19 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 
+const getInitials = (name?: string) => {
+  if (!name) return ''; // return empty string if undefined
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
+};
+
 const Header = () => {
   const { user, logout } = useAuth();
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
+  const initials = getInitials(user?.name) || 'U'; // safely pass undefined
+  
 
   return (
     <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between shadow-sm">

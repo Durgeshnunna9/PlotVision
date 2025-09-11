@@ -32,24 +32,24 @@ const sidebarItems: SidebarItem[] = [
     path: '/properties',
     roles: ['admin', 'agent', 'manager']
   },
-  {
-    icon: Users,
-    label: 'Clients',
-    path: '/clients',
-    roles: ['admin', 'agent', 'manager']
-  },
+  // {
+  //   icon: Users,
+  //   label: 'Clients',
+  //   path: '/clients',
+  //   roles: ['admin', 'agent', 'manager']
+  // },
   {
     icon: UserCheck,
     label: 'Agents',
     path: '/agents',
     roles: ['admin', 'manager']
   },
-  {
-    icon: ClipboardList,
-    label: 'Tasks',
-    path: '/tasks',
-    roles: ['agent', 'manager']
-  },
+  // {
+  //   icon: ClipboardList,
+  //   label: 'Tasks',
+  //   path: '/tasks',
+  //   roles: ['agent', 'manager']
+  // },
   {
     icon: BarChart3,
     label: 'Analytics',

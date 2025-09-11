@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Properties from "./pages/Properties"
+import Agents from "./pages/Agents"
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -38,7 +39,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            <Route 
+            {/* <Route 
               path="/clients" 
               element={
                 <ProtectedRoute>
@@ -48,19 +49,16 @@ const App = () => (
                   </div>
                 </ProtectedRoute>
               } 
-            />
+            /> */}
             <Route 
               path="/agents" 
               element={
                 <ProtectedRoute roles={['admin', 'manager']}>
-                  <div className="p-6">
-                    <h1 className="text-3xl font-bold">Agents</h1>
-                    <p className="text-muted-foreground mt-2">Agent management coming soon...</p>
-                  </div>
+                  <Agents />
                 </ProtectedRoute>
               } 
             />
-            <Route 
+            {/* <Route 
               path="/tasks" 
               element={
                 <ProtectedRoute roles={['agent', 'manager']}>
@@ -70,7 +68,7 @@ const App = () => (
                   </div>
                 </ProtectedRoute>
               } 
-            />
+            /> */}
             <Route 
               path="/analytics" 
               element={

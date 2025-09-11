@@ -1,102 +1,99 @@
 import React, { useState } from "react";
-
+import { supabase } from "../../lib/supabaseClient"
 // const [images, setImages] = useState<File[]>([]);
 
 export interface PropertyFormData {
+  user_id: string ;
+  location: string ;
+  distance: string ;
+  footfall_per_hour: number;
   snack_spend: number ;
-  store_size: number ;
-  length:  number ;
-  width:  number ;
+  property_type: string;
   store_model: string ;
-  store_type: string ;
+  store_size: number ;
+  store_length:  number ;
+  store_width:  number ;
+  road_facing: string ;
+  entry_direction: string ;
+  corner_peice: string ;
+  corner_side: string ;
+  store_position:string ;
   shutter_length: number ;
   shutter_width: number ;
   front_offset: number ;
-  setback: number ;
+  setback: string ;
+  floor: string;
+  parking_availability: string;
   parking_capacity_2w: number;
   parking_capacity_4w: number;
   washroom: string ;
   electricity: string ;
-  genrator: string ;
-  age: number ;
+  generator: string ;
+  building_age: string ;
   water: string ;
-  condition: string ;
+  building_condition: string ;
   landmark: string ;
-  property_type: string;
-  property_size: string;
-  floor: string;
-  road_facing: string;
-  entry_direction: string;
-  corner: string;
-  corner_side: string;
-  parking: string;
-  parking_photos: File[];
-  front_entry: string;
-  rear_entry: string;
-  property_photos: File[];
-  video: string;
-  location: string;
   owner_contacted: string;
   rental_value: number;
-  building_age: number;
   about_property: string;
-  footfall: number;
-  address:string;
+  facilities: string[];
+  advantages: string[];
+  parking_photos: File[];
+  property_photos: File[];
+  video: File[];
 
 }
 
 interface PropertyFormProps {
-  onSubmit: (data: PropertyFormData) => void;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
-  const [formData, setFormData] = useState<PropertyFormData>({
-    snack_spend: 0,
-    store_size: 0,
-    length: 0,
-    width: 0,
-    store_model: "",
-    store_type: "",
-    shutter_length: 0,
-    shutter_width: 0,
-    front_offset: 0,
-    setback: 0,
+export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess }) =>{
+  const [formData, setFormData] = useState<PropertyFormData >({
+    user_id: "",
+    location: "" ,
+    distance: "" ,
+    footfall_per_hour: 0,
+    snack_spend: 0 ,
+    property_type: "",
+    store_model: "" ,
+    store_size: 0 ,
+    store_length:  0 ,
+    store_width:  0 ,
+    road_facing: "" ,
+    entry_direction: "" ,
+    corner_peice: "" ,
+    corner_side: "" ,
+    store_position:"" ,
+    shutter_length: 0 ,
+    shutter_width: 0 ,
+    front_offset: 0 ,
+    setback: "" ,
+    floor: "",
+    parking_availability: "",
     parking_capacity_2w: 0,
     parking_capacity_4w: 0,
-    washroom: "",
-    electricity: "",
-    genrator: "",
-    age: 0,
-    water: "",
-    condition: "",
-    landmark: "",
-    property_type: "",
-    property_size: "",
-    floor: "",
-    road_facing: "",
-    entry_direction: "",
-    corner: "",
-    corner_side: "",
-    parking: "",
-    parking_photos: [],
-    front_entry: "",
-    rear_entry: "",
-    property_photos: [],
-    video: "",
-    location: "",
+    washroom: "" ,
+    electricity: "" ,
+    generator: "" ,
+    building_age: "" ,
+    water: "" ,
+    building_condition: "" ,
+    landmark: "" ,
     owner_contacted: "",
     rental_value: 0,
-    building_age: 0,
     about_property: "",
-    footfall: 0,
-    address: "",
-    
+    facilities: [],
+    advantages: [],
+    parking_photos: [],
+    property_photos: [],
+    video: [],
   });
 
   const [loading, setLoading] = useState(false);
   const [facilities, setFacilities] = useState([]);
+  const [advantages, setAdvantages] = useState([]);
 
   const facilities_option = [
     "Schools",
@@ -126,6 +123,7 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
   //     setImages(Array.from(e.target.files)); // Convert FileList to array
   //   }
   // };
+
   const handleImageChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     field: "parking_photos" | "property_photos"
@@ -152,13 +150,49 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
     }
   };
 
+  const uploadFiles = async (files: File[], folder: string): Promise<string[]> => {
+    const urls: string[] = [];
+  
+    for (const file of files) {
+      const filePath = `${folder}/${Date.now()}-${file.name}`;
+  
+      const { data, error } = await supabase.storage
+        .from("property-images") // bucket name
+        .upload(filePath, file);
+  
+      if (error) throw error;
+  
+      const { data: urlData } = supabase.storage
+        .from("property-images")
+        .getPublicUrl(filePath);
+  
+      urls.push(urlData.publicUrl);
+    }
+  
+    return urls;
+  };
+
+  // ---- Handle change ----
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target as HTMLInputElement;
 
     // fields that should be numbers
-    const numericFields = new Set(["rental_value", "building_age", "footfall"]);
+    const numericFields = new Set([
+      "footfall_per_hour",
+      "snack_spend",
+      "store_size",
+      "store_length",
+      "store_width",
+      "shutter_length",
+      "shutter_width",
+      "front_offset",
+      "parking_capacity_2w",
+      "parking_capacity_4w",
+      "building_age",
+      "rental_value",
+    ]);
 
     let nextValue: any = value;
 
@@ -170,70 +204,138 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
       nextValue = (e.target as HTMLInputElement).checked ? "yes" : "no";
     }
 
-    setFormData((prev) => ({ ...prev, [name]: nextValue }));
+    setFormData((prev) => {
+      let updated = { ...prev, [name]: nextValue };
+      if (name === "store_length" || name === "store_width") {
+        updated.store_size = (updated.store_length || 0) * (updated.store_width || 0);
+
+      if (updated.store_size <= 50) {
+        updated.store_model = "Nano Model";
+      } else if (updated.store_size <= 200 && updated.store_size > 50 && updated.property_type === "open_plot") {
+        updated.store_model = "Nano Mobile Model";
+      } else if (updated.store_size > 200 && updated.store_size <= 350) {
+        updated.store_model = "Express A Model";
+      } else if (updated.store_size > 350 && updated.store_size <= 500) {
+        updated.store_model = "Express B Model";
+      } else if (updated.store_size > 500 && updated.store_size <= 750) {
+        updated.store_model = "Plus A Model";
+      } else if (updated.store_size > 750 && updated.store_size <= 1000) {
+        updated.store_model = "Plus B Model";
+      } else if (updated.store_size > 1000 && updated.store_size <= 1500) {
+        updated.store_model = "May A Model";
+      } else if (updated.store_size > 1500 && updated.store_size <= 2000) {
+        updated.store_model = "May B Model";
+      } else {
+        updated.store_model = `Open Plot`; // fallback dynamic value
+      }
+    }
+      return updated;
+    });
   };
 
+  // ---- Handle submit ----
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      await onSubmit(formData); // call the parent handler
-      if (onSuccess) onSuccess();
+      console.log("Submitting data:", formData);
+      // Upload files if any
+      const propertyPhotosUrls = formData.property_photos.length
+      ? await uploadFiles(formData.property_photos, "property_photos")
+      : [];
+      const parkingPhotosUrls = formData.parking_photos.length
+        ? await uploadFiles(formData.parking_photos, "parking_photos")
+        : [];
+      const videoUrls = formData.video.length
+        ? await uploadFiles(formData.video, "videos")
+        : [];
+      const { user_id, ...dataToSubmit } = formData;
+      // Prepare payload, ignoring empty arrays
+      const payload = {
+        ...dataToSubmit,
+        property_photos: propertyPhotosUrls.length ? propertyPhotosUrls : null,
+        parking_photos: parkingPhotosUrls.length ? parkingPhotosUrls : null,
+        video: videoUrls.length ? videoUrls : null,
+        facilities: formData.facilities.length ? formData.facilities : null,
+        advantages: formData.advantages.length ? formData.advantages : null,
+      };
+      
+      // Insert into Supabase
+      const { data, error } = await supabase
+        .from("properties")
+        .insert([payload]);
+
+      if (error) throw error;
+
+      console.log("Inserted:", data);
+
+      // ✅ if everything works
+      onSuccess?.();
+
        // Reset form after successful submit
-       setFormData({
-        snack_spend: 0,
-        store_size: 0,
-        length: 0,
-        width: 0,
-        store_model: "",
-        store_type: "",
-        shutter_length: 0,
-        shutter_width: 0,
-        front_offset: 0,
-        setback: 0,
+      setFormData({
+        user_id: "",
+        location: "" ,
+        distance: "" ,
+        footfall_per_hour: 0,
+        snack_spend: 0 ,
+        property_type: "",
+        store_model: "" ,
+        store_size: 0 ,
+        store_length:  0 ,
+        store_width:  0 ,
+        road_facing: "" ,
+        entry_direction: "" ,
+        corner_peice: "" ,
+        corner_side: "" ,
+        store_position:"" ,
+        shutter_length: 0 ,
+        shutter_width: 0 ,
+        front_offset: 0 ,
+        setback: "" ,
+        floor: "",
+        parking_availability: "",
         parking_capacity_2w: 0,
         parking_capacity_4w: 0,
-        washroom: "",
-        electricity: "",
-        genrator: "",
-        age: 0,
-        water: "",
-        condition: "",
-        landmark: "",
-        property_type: "",
-        property_size: "",
-        floor: "",
-        road_facing: "",
-        entry_direction: "",
-        corner: "",
-        corner_side: "",
-        parking: "",
-        parking_photos: [],
-        front_entry: "",
-        rear_entry: "",
-        property_photos: [],
-        video: "",
-        location: "",
+        washroom: "" ,
+        electricity: "" ,
+        generator: "" ,
+        building_age: "" ,
+        water: "" ,
+        building_condition: "" ,
+        landmark: "" ,
         owner_contacted: "",
         rental_value: 0,
-        building_age: 0,
         about_property: "",
-        footfall: 0,
-        address: "",
-       });
+        facilities: [],
+        advantages: [],
+        parking_photos: [],
+        property_photos: [],
+        video: [],
+      });
     } catch (err) {
       console.error("Error submitting property:", err);
       setLoading(false);
     }
-    // } catch (error) {
-    //   console.error("Error submitting property:", error);
-      
-    // }
+    finally{
+      setLoading(false);
+    }
   };
-  const toggleOption = (facilities_option) => {
+
+  // ----Facilities Option------
+  const toggleOptionFacilities = (facilities_option) => {
     setFacilities((prev) =>
       prev.includes(facilities_option)
         ? prev.filter((item) => item !== facilities_option) // remove if already selected
         : [...prev, facilities_option] // add if not selected
+    );
+  };
+  //------Advantages Option-----------
+  const toggleOptionAdvantages = (advantages_option) => {
+    setAdvantages((prev) =>
+      prev.includes(advantages_option)
+        ? prev.filter((item) => item !== advantages_option) // remove if already selected
+        : [...prev, advantages_option] // add if not selected
     );
   };
 
@@ -242,20 +344,31 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
       {/*First set of Data */}
       <div>
         <h3 className="block font-bold pl-2 mb-1 text-xl"> Core Location Data </h3>
-        
+        <div>
+          <label>User Id</label>
+          <input type="string"
+              name="user_id"
+              value={formData.user_id}
+              onChange={handleChange}
+              className="border rounded p-2 w-full"
+              placeholder="Enter the value of UserId"
+              required
+            />
+        </div>
         <div className="p-4 m-1 mt-3 border">
           Maps(Google Maps Pin)
         </div>
         <div className="p-4 m-1 mt-3 border">
           Input area (Auto calc. from central Kitchen)
         </div>
+
         <div className="grid grid-cols-2">
           <div className="m-2">
             <label> Footfall per Hour:</label>
             <input 
               type="number"
-              name="footfall"
-              value={formData.footfall}
+              name="footfall_per_hour"
+              value={formData.footfall_per_hour === 0? "" : formData.footfall_per_hour}
               onChange={handleChange}
               className="border rounded p-2 w-full"
               placeholder="Enter the value of Footfall per Hour"
@@ -267,7 +380,7 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
             <input 
               type="number"
               name="snack_spend"
-              value={formData.snack_spend}
+              value={formData.snack_spend === 0? "" : formData.snack_spend}
               onChange={handleChange}
               className="border rounded p-2 w-full"
               placeholder="Enter the value of Per Capita Spend on Snacks per person"
@@ -280,43 +393,7 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
 
       {/*Second set of Data */}
       <div >
-        <h2 className="block font-bold pl-2 mb-3 text-xl"> Physicial Details</h2>
-        
-        <div className="grid grid-cols-3">
-          <div className="mr-3">
-            <label className="block pl-2 mb-1 font-medium">Store Size(sq. ft.)</label>
-            <input 
-              type="number"
-              name="floostore_size"
-              value={formData.store_size}
-              onChange={handleChange}
-              className="border rounded p-2 w-full mb-2"
-              placeholder="Auto calculated from dimension"
-              disabled
-              required
-            />
-          </div>
-          <div className="ml-4 col-span-2">
-            <p className="block pl-2 mb-1 font-medium">Store Dimensions:</p>
-            <div className="flex">
-              <input type="number"
-                name="floostore_length"
-                value={formData.length}
-                onChange={handleChange}
-                placeholder="Enter store length in ft."
-                className="border rounded p-2 w-full mr-2 mb-2"
-                required/>
-              <input type="number"
-                name="floostore_width"
-                value={formData.width}
-                onChange={handleChange}
-                placeholder="Enter store width in ft."
-                className="border rounded p-2 w-full ml-2 mb-2"
-                required/>
-            </div>
-          </div>
-          
-        </div>
+        <h2 className="block font-bold pl-2 mb-2 text-xl"> Physicial Details</h2>
         
         <div className="grid grid-cols-2">
           {/* Property Type */}
@@ -338,20 +415,6 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
           {/* Store Size */}
           <div className="ml-3">
             <label className="block pl-2 mb-1 font-medium">Store Model:</label>
-            {/* <select
-              name="property_size"
-              value={formData.property_size}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-md bg-white hover:bg-gray-100 "
-            >
-              <option value="">Select Size</option>
-              <option value="50_sqft">50 sqft</option>
-              <option value="200_sqft_open">200 sqft Open Field</option>
-              <option value="200_sqft">200 sqft</option>
-              <option value="350_sqft">350 sqft</option>
-              <option value="400_sqft">400 sqft</option>
-              <option value="600_sqft">600 sqft</option>
-            </select> */}
             <input 
               name="store_model"
               value={formData.store_model}
@@ -361,6 +424,40 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
               disabled
               required
             />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 mt-2">
+          <div className="mr-3">
+            <label className="block pl-2 mb-1 font-medium">Store Size(sq. ft.)</label>
+            <input 
+              type="number"
+              name="store_size"
+              value={formData.store_size === 0 ? "" : formData.store_size}
+              onChange={handleChange}
+              className="border rounded p-2 w-full mb-2"
+              placeholder="Auto calculated from dimension"
+              disabled
+              required
+            />
+          </div>
+          <div className="ml-4 col-span-2">
+            <p className="block pl-2 mb-1 font-medium">Store Dimensions (in ft):</p>
+            <div className="flex">
+              <input type="number"
+                name="store_length"
+                value={formData.store_length === 0? "" : formData.store_length}
+                onChange={handleChange}
+                placeholder="Enter store length in ft."
+                className="border rounded p-2 w-full mr-2 mb-2"
+                required/>
+              <input type="number"
+                name="store_width"
+                value={formData.store_width === 0? "" : formData.store_width}
+                onChange={handleChange}
+                placeholder="Enter store width in ft."
+                className="border rounded p-2 w-full ml-2 mb-2"
+                required/>
+            </div>
           </div>
         </div>
       </div>
@@ -404,8 +501,8 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
         <div className="mr-3">
           <label className="block pl-2 mb-1 font-medium"> Corner Peice </label>
           <select
-            name="corner"
-            value={formData.corner}
+            name="corner_peice"
+            value={formData.corner_peice}
             onChange={handleChange}
             className="w-full mt-1 p-2 border rounded-md bg-white hover:bg-gray-100 "
           >
@@ -416,7 +513,7 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
         </div>
 
         {/*Corner Side*/}
-        {formData.corner === "yes" && (
+        {formData.corner_peice === "yes" && (
           <div className="ml-3">
             <label className="block mb-2 pl-2 font-medium">Corner Side</label>
             <select
@@ -437,10 +534,10 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
       <div className="grid grid-cols-3">
         {/*Store Type*/}
         <div className="mr-2">
-          <label className="block bm-1 pl-2 font-medium"> Store Type </label>
+          <label className="block bm-1 pl-2 font-medium"> Store Position </label>
           <select
-            name="store_type"
-            value={formData.store_type}
+            name="store_position"
+            value={formData.store_position}
             onChange={handleChange}
             className="w-full mt-1 p-2 border rounded-md bg-white hover:bg-gray-100"
           >
@@ -452,18 +549,18 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
         </div>
         {/*Setback*/}
         <div className="ml-2 col-span-2">
-          <label className="block pl-2 mb-1 font-medium"> Shutter Size:</label>
+          <label className="block pl-2 mb-1 font-medium"> Shutter Size (in ft):</label>
           <div className="flex">
             <input type="number"
               name="shutter_length"
-              value={formData.shutter_length}
+              value={formData.shutter_length === 0 ? "" : formData.shutter_length}
               onChange={handleChange}
               placeholder="Enter shutter length in ft."
               className="border rounded p-2 w-full mr-2"
               required/>
             <input type="number"
               name="shutter_width"
-              value={formData.shutter_width}
+              value={formData.shutter_width === 0 ? "" : formData.shutter_width}
               onChange={handleChange}
               placeholder="Enter shutter width in ft."
               className="border rounded p-2 w-full ml-2"
@@ -475,13 +572,13 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
       <div className="grid grid-cols-2">
         {/* Front Offset */}
         <div className="mr-3">
-          <label className="block pl-2 mb-1  font-medium">Front Offset</label>
+          <label className="block pl-2 mb-1  font-medium">Front Offset (in ft):</label>
           <input
             type="string"
             name="front_offset"
-            value={formData.front_offset}
+            value={formData.front_offset === 0? "" : formData.front_offset}
             onChange={handleChange}
-            className="border rounded p-2 w-full"
+            className="border rounded-md p-2 w-full"
             placeholder="Distance from road / visibility"
             required
           />
@@ -496,8 +593,8 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
             className="w-full p-2 border rounded-md bg-white hover:bg-gray-100 "
           >
             <option value="" disabled hidden>Choose</option>
-            <option value="yes">Front Setback</option>
-            <option value="no">Rear Setback</option>
+            <option value="front">Front Setback</option>
+            <option value="rear">Rear Setback</option>
           </select>
         </div>
       </div>
@@ -511,17 +608,32 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
             name="floor"
             value={formData.floor}
             onChange={handleChange}
-            className="border rounded p-2 w-full"
+            className="border rounded-md p-2 w-full"
             placeholder="Enter Floor Value, Ex: Ground, First, etc.. "
             required
           />
         </div>
+        {/* Rental Value */}
+        <div className="ml-2">
+          <label className="block mb-1 pl-2 font-medium">Rental Value</label>
+          <input
+            type="number"
+            name="rental_value"
+            value={formData.rental_value === 0 ? "" : formData.rental_value}
+            onChange={handleChange}
+            placeholder="The rent yield must be entered here"
+            className="w-full p-2 border rounded-md hover:bg-gray-100 "
+          />
+        </div>
+        
+      </div>
+      <div className="grid grid-cols-3">
         {/* Parking */}
-        <div className="ml-3">
+        <div className="mr-2">
           <label className="block mb-1 pl-2 font-medium">Parking Availability</label>
           <select
-            name="parking"
-            value={formData.parking}
+            name="parking_availability"
+            value={formData.parking_availability}
             onChange={handleChange}
             className="w-full p-2 border rounded-md bg-white hover:bg-gray-100 "
           >
@@ -530,38 +642,21 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
             <option value="no">No, It is not available</option>
           </select>
         </div>
-      </div>
-      <div className="grid grid-cols-2">
-        {/*Parking availbility */}
-        <div className="mr-3">
-          <label className="block pl-2 mb-1 font-medium"> Parking Availability </label>
-          <select
-            name="parking"
-            value={formData.parking}
-            onChange={handleChange}
-            className="w-full mt-1 p-2 border rounded-md bg-white hover:bg-gray-100 "
-          >
-            <option value="" disabled hidden>Choose</option>
-            <option value="yes">Yes, it is available</option>
-            <option value="no">No, it is not available</option>
-          </select>
-        </div>
-
         {/*Parking Count*/}
-        {formData.parking === "yes" && (
-          <div className="ml-3 mr-3">
+        {formData.parking_availability === "yes" && (
+          <div className="ml-2">
             <label className="block mb-1 pl-2 font-medium">Parking Capacity</label>
-            <div className="grid grid-cols-2">
+            <div className="grid grid-cols-2 pr-5">
               <input type="string"
               name="parking_capacity_2w"
-              value={formData.parking_capacity_2w}
+              value={formData.parking_capacity_2w === 0 ? "" : formData.parking_capacity_2w}
               onChange={handleChange}
               className="border rounded p-2 w-full "
               placeholder="2W Capacity"
               required/>
               <input type="string"
               name="parking_capacity_4w"
-              value={formData.parking_capacity_4w}
+              value={formData.parking_capacity_4w === 0 ? "" : formData.parking_capacity_4w}
               onChange={handleChange}
               className="border rounded p-2 w-full ml-3"
               placeholder="4W Capacity"
@@ -569,6 +664,22 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
             </div>
           </div>
         )}
+         {/* Owner Contact */}
+         <div className="mr-2">
+          <label className="block mb-1 pl-2 font-medium">Owner Contacted </label>
+          <select
+            name="owner_contacted"
+            value={formData.owner_contacted}
+            onChange={handleChange}
+            className="w-full p-2 border rounded-md bg-white hover:bg-gray-100 "
+          >
+            <option value="" disabled hidden>Choose</option>
+            <option value="yes">Yes, Owner has been contacted</option>
+            <option value="no">No, Owner has not been contacted</option>
+          </select>
+        </div>
+
+        
       </div>
       {/*Misc Data */}
       <div className="grid grid-cols-3">
@@ -602,10 +713,10 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
         </div>
         {/* Generator */}
         <div className="mr-3">
-          <label className="block pl-2 mb-1 font-medium"> Genrator Availability </label>
+          <label className="block pl-2 mb-1 font-medium"> Generator Availability </label>
           <select
-            name="genrator"
-            value={formData.genrator}
+            name="generator"
+            value={formData.generator}
             onChange={handleChange}
             className="w-full mt-1 p-2 border rounded-md bg-white hover:bg-gray-100 mb-2"
           >
@@ -618,8 +729,8 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
         <div className="mr-3">
           <label className="block pl-2 mb-1 font-medium"> Building Age </label>
           <select
-            name="age"
-            value={formData.age}
+            name="building_age"
+            value={formData.building_age}
             onChange={handleChange}
             className="w-full mt-1 p-2 border rounded-md bg-white hover:bg-gray-100 "
           >
@@ -649,8 +760,8 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
         <div className="mr-3">
           <label className="block pl-2 mb-1 font-medium"> Building Condition </label>
           <select
-            name="condition"
-            value={formData.condition}
+            name="building_condition"
+            value={formData.building_condition}
             onChange={handleChange}
             className="w-full mt-1 p-2 border rounded-md bg-white hover:bg-gray-100 "
           >
@@ -672,20 +783,7 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
           onChange={handleChange}
           className="w-full p-2 border rounded-md hover:bg-gray-100 "
         />
-      </div>
-      {/* Footfall */}
-      {/* <div>
-        <label className="block mb-1 pl-2 font-medium">Footfall</label>
-        <input
-          type="number"
-          name="footfall"
-          value={formData.footfall}
-          onChange={handleChange}
-          className="w-full p-2 border rounded-md hover:bg-gray-100 "
-        />
-      </div> */}
-
-      
+      </div>      
 
       {/*Integration with google Maps*/}
       <div>
@@ -703,45 +801,9 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
       </div>
 
       <div className="grid grid-cols-2">
-        {/* Owner Contact */}
-        <div className="p-1 mr-2">
-          <label className="block mb-1 pl-2 font-medium">Owner Contacted </label>
-          <select
-            name="owner_contacted"
-            value={formData.owner_contacted}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md bg-white hover:bg-gray-100 "
-          >
-            <option value="" disabled hidden>Choose</option>
-            <option value="north">Yes, Owner has been contacted</option>
-            <option value="south">No, Owner has not been contacted</option>
-          </select>
-        </div>
-
-        {/* Rental Value */}
-        <div className="ml-2">
-          <label className="block mb-1 pl-2 font-medium">Rental Value</label>
-          <input
-            type="number"
-            name="rental_value"
-            value={formData.rental_value}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md hover:bg-gray-100 "
-          />
-        </div>
+       
       </div>
 
-      {/* Building Age */}
-      {/* <div>
-        <label className="block mb-1 pl-2 font-medium">Building Age</label>
-        <input
-          type="number"
-          name="building_age"
-          value={formData.building_age}
-          onChange={handleChange}
-          className="w-full p-2 border rounded-md hover:bg-gray-100 "
-        />
-      </div> */}
 
       {/* About Property */}
       <div className="p-2">
@@ -758,7 +820,7 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
       
       <div className="p-1">
         <h2 className="block font-bold pl-2 mb-3 text-xl"> Media Details</h2>
-        <div className={`grid ${formData.parking === "yes" ? "grid-cols-3" : "grid-cols-2"}`}>
+        <div className={`grid ${formData.parking_availability === "yes" ? "grid-cols-3" : "grid-cols-2"}`}>
           {/* Property Photos */}
           <div>
             <label className="block pl-2 font-medium">Property Photos</label>
@@ -771,7 +833,7 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
             />
           </div>
           {/* Parking Photos */}
-          {formData.parking === "yes" && (
+          {formData.parking_availability === "yes" && (
             <div>
               <label className="block pl-2 font-medium">Parking Pictures </label>
               <input
@@ -791,7 +853,7 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
               accept="video/*"
               multiple
               onChange={(e) => handleVideoChange(e, "parking_videos")}
-              className="w-full p-2 pl-2 "
+              className="w-full p-2 pl-2 rounded-sm"
             />
           </div>
         </div>
@@ -807,32 +869,32 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
             {facilities_option.map((opt) => (
               <label
                 key={opt}
-                className="flex items-center gap-2 cursor-pointer p-2 border rounded hover:bg-gray-50"
+                className="flex items-center gap-2 cursor-pointer p-2 border rounded hover:bg-gray-50 mt-1"
               >
                 <input
                   type="checkbox"
                   checked={facilities.includes(opt)}
-                  onChange={() => toggleOption(opt)}
-                  className="w-4 h-4"
+                  onChange={() => toggleOptionFacilities(opt)}
+                  className="w-4 h-4 rounded-sm"
                 />
                 {opt}
               </label>
             ))}
           </div>
         </div>
-        <div>
+        <div className="mt-2 ">
           <label className="block pl-2 font-medium">Location Advantages <span className="text-xs">(Select all that apply)</span></label> 
           <div className="grid grid-cols-2 gap-2 p-2">
             {advantages_option.map((opt) => (
               <label
                 key={opt}
-                className="flex items-center gap-2 cursor-pointer p-2 border rounded hover:bg-gray-50"
+                className="flex items-center gap-2 cursor-pointer p-2 border rounded hover:bg-gray-50 mt-1"
               >
                 <input
                   type="checkbox"
-                  checked={facilities.includes(opt)}
-                  onChange={() => toggleOption(opt)}
-                  className="w-4 h-4"
+                  checked={advantages.includes(opt)}
+                  onChange={() => toggleOptionAdvantages(opt)}
+                  className="w-4 h-4 rounded-sm"
                 />
                 {opt}
               </label>
@@ -840,13 +902,23 @@ export function PropertyForm({ onSubmit, onSuccess }: PropertyFormProps) {
           </div>
         </div>
       </div>
-      <button
-        type="submit"
-        disabled={loading}
-        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        {loading ? "Saving..." : "Save Property"}
-      </button>
+      {/* Buttons */}
+      <div className="flex justify-end gap-2">
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="border px-4 py-2 rounded-lg">
+            Cancel
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+          onClick={handleSubmit}
+        >
+          
+          {loading ? "Saving..." : "Save Property"}
+        </button>
+      </div>
     </form>
   );
 }
