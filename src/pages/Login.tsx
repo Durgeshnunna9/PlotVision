@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Home, Mail, Lock, UserRound, Phone } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient'; // make sure you have a supabase client
+import { supabase } from '@/integrations/supabase/client';
 import heroImage from '@/assets/real-estate-hero.jpg';
 
 const Login = () => {
@@ -80,80 +80,93 @@ const Login = () => {
 
   const handleGoogleSignIn = async () => {
     try {
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: "http://localhost:8080/auth/dashboard", // or 8080 if that's your port
+          redirectTo: redirectUrl,
         },
       });
       if (error) throw error;
       // Supabase handles redirect, user will be logged in after callback
     } catch (err: any) {
       console.error("Google login error:", err.message);
+      setError("Google sign-in failed. Please try again.");
     }
   };
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    
     try {
       const formData = new FormData(e.currentTarget);
       const email = formData.get("email") as string;
       const password = formData.get("password") as string;
       const name = formData.get("name") as string;
-  
-      // 1. Signup
-      const { data:signUpData, error:signUpError } = await supabase.auth.signUp({
+      const phone = formData.get("phone") as string;
+
+      // 1. Signup with redirect URL
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name, phone } },
+        options: { 
+          data: { full_name: name, phone, role },
+          emailRedirectTo: redirectUrl
+        },
       });
+
+      if (signUpError) {
+        if (signUpError.message.includes('User already registered')) {
+          setError('This email is already registered. Please try logging in instead.');
+          setIsLogin(true);
+        } else {
+          setError(signUpError.message);
+        }
+        return;
+      }
+
       if (signUpData.user) {
-        console.log({ email, password, name, phone });
-        const user = signUpData.user;
-      
-        // Upsert to profiles table
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert({
-            id: user.id,
-            email: user.email,
-            name: name,             // from form
-            phone: phone,    // from form
-                       // from form dropdown
-          }, { onConflict: "id" });
-      
-        if (profileError) throw profileError;
-  
-        // 3. Auto login (optional)
-        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-        if (loginError) throw loginError;
-  
-        // 4. Navigate inside app
+        // Profile will be created automatically by the database trigger
+        // Navigate to dashboard
         navigate("/dashboard");
       }
     } catch (err: any) {
       console.error("Error in handleSignUp:", err.message);
-      alert(err.message);
+      setError(err.message || 'An error occurred during signup');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
-  
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-  
-    if (error) {
-      alert(error.message);
-    } else {
-      navigate("/dashboard");
-      alert("Login successful!");
-      
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during login');
+    } finally {
+      setIsLoading(false);
     }
   };
 

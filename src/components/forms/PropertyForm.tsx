@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { supabase } from "../../lib/supabaseClient"
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 // const [images, setImages] = useState<File[]>([]);
 
 export interface PropertyFormData {
@@ -49,9 +50,18 @@ interface PropertyFormProps {
   onCancel?: () => void;
 }
 
-export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess }) =>{
-  const [formData, setFormData] = useState<PropertyFormData >({
-    user_id: "",
+export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess }) => {
+  const { user } = useAuth();
+  
+  if (!user) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-muted-foreground">Please log in to add properties.</p>
+      </div>
+    );
+  }
+  const [formData, setFormData] = useState<PropertyFormData>({
+    user_id: user?.id || "",
     location: "" ,
     distance: "" ,
     footfall_per_hour: 0,
@@ -250,9 +260,19 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
         ? await uploadFiles(formData.video, "videos")
         : [];
       const { user_id, ...dataToSubmit } = formData;
-      // Prepare payload, ignoring empty arrays
+      // Convert string values to appropriate types for database
       const payload = {
         ...dataToSubmit,
+        user_id: user?.id,
+        // Convert boolean fields from string
+        corner_peice: typeof dataToSubmit.corner_peice === 'string' ? dataToSubmit.corner_peice === "yes" : dataToSubmit.corner_peice,
+        road_facing: typeof dataToSubmit.road_facing === 'string' ? dataToSubmit.road_facing === "yes" : dataToSubmit.road_facing, 
+        parking_availability: typeof dataToSubmit.parking_availability === 'string' ? dataToSubmit.parking_availability === "yes" : dataToSubmit.parking_availability,
+        washroom: typeof dataToSubmit.washroom === 'string' ? dataToSubmit.washroom === "yes" : dataToSubmit.washroom,
+        electricity: typeof dataToSubmit.electricity === 'string' ? dataToSubmit.electricity === "yes" : dataToSubmit.electricity,
+        generator: typeof dataToSubmit.generator === 'string' ? dataToSubmit.generator === "yes" : dataToSubmit.generator,
+        owner_contacted: typeof dataToSubmit.owner_contacted === 'string' ? dataToSubmit.owner_contacted === "yes" : dataToSubmit.owner_contacted,
+        // Handle file URLs and JSON fields
         property_photos: propertyPhotosUrls.length ? propertyPhotosUrls : null,
         parking_photos: parkingPhotosUrls.length ? parkingPhotosUrls : null,
         video: videoUrls.length ? videoUrls : null,
