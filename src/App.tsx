@@ -6,9 +6,12 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Properties from "./pages/Properties"
 import Agents from "./pages/Agents"
+import UserManagement from "./pages/UserManagement"
 import ProtectedRoute from "./components/ProtectedRoute";
+import AuthenticatedRoute from "./components/AuthenticatedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,7 +25,22 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route 
+              path="/onboarding" 
+              element={
+                <AuthenticatedRoute>
+                  <Onboarding />
+                </AuthenticatedRoute>
+              } 
+            />
+            <Route 
+              path="/" 
+              element={
+                <AuthenticatedRoute>
+                  <Navigate to="/dashboard" replace />
+                </AuthenticatedRoute>
+              } 
+            />
             <Route 
               path="/dashboard" 
               element={
@@ -113,8 +131,16 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/users" 
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <UserManagement />
+                </ProtectedRoute>
+              } 
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

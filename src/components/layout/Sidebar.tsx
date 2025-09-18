@@ -44,6 +44,12 @@ const sidebarItems: SidebarItem[] = [
     path: '/agents',
     roles: ['admin', 'manager']
   },
+  {
+    icon: Users,
+    label: 'Users',
+    path: '/users',
+    roles: ['admin']
+  },
   // {
   //   icon: ClipboardList,
   //   label: 'Tasks',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Home, Mail, Lock, UserRound, Phone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import heroImage from '@/assets/real-estate-hero.jpg';
 
 const Login = () => {
@@ -18,10 +19,22 @@ const Login = () => {
   const [showTerms, setShowTerms] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'admin' | 'agent' | 'manager'>('agent'); // default
+  const [role, setRole] = useState<'agent'>('agent'); // Only agents can signup
   // const [imageUrl, setImageUrl] = useState('');
   const [agreed, setAgreed] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Redirect to appropriate page if already authenticated
+  useEffect(() => {
+    if (user) {
+      if (!user.role) {
+        navigate('/onboarding');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [user, navigate]);
 
   const TermsModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
     <>
@@ -109,13 +122,17 @@ const Login = () => {
       const phone = formData.get("phone") as string;
 
       // 1. Signup with redirect URL
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      const redirectUrl = `${window.location.origin}/onboarding`;
       
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: { 
-          data: { full_name: name, phone, role },
+          data: { 
+            full_name: name, 
+            phone, 
+            role: 'agent' // Force all new signups to be agents initially
+          },
           emailRedirectTo: redirectUrl
         },
       });
@@ -132,8 +149,8 @@ const Login = () => {
 
       if (signUpData.user) {
         // Profile will be created automatically by the database trigger
-        // Navigate to dashboard
-        navigate("/dashboard");
+        // Navigate to onboarding for role selection
+        navigate("/onboarding");
       }
     } catch (err: any) {
       console.error("Error in handleSignUp:", err.message);
@@ -161,7 +178,18 @@ const Login = () => {
       if (error) {
         setError(error.message);
       } else {
-        navigate("/dashboard");
+        // Check if user needs onboarding (no role set)
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user?.id)
+          .single();
+          
+        if (!profile?.role) {
+          navigate('/onboarding');
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
@@ -223,13 +251,11 @@ const Login = () => {
                         id="role"
                         name="role"
                         value={role}
-                        onChange={(e) => setRole(e.target.value as 'admin' | 'agent' | 'manager')}
+                        onChange={(e) => setRole(e.target.value as 'agent')}
                         className="w-full border rounded-md px-3 py-2"
                         required
                       >
-                        <option value="admin">Admin</option>
-                        <option value="agent">Agent</option>
-                        <option value="manager">Manager</option>
+                        <option value="agent">Real Estate Agent</option>
                       </select>
                     </div>
                     <div className="space-y-2">
