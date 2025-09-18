@@ -1,0 +1,6 @@
+######## When u want to get the updates from the github ###########
+
+- git pull origin main ( Used to get data from git)
+
+- git fetch origin
+git reset --hard origin/main ( This is used when u have local changes, but want them to overwrite with github version)

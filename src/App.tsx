@@ -25,19 +25,13 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Login />} />
+            {/* <Route path="/login" element={<Login />} /> */}
             <Route 
               path="/onboarding" 
               element={
                 <AuthenticatedRoute>
                   <Onboarding />
-                </AuthenticatedRoute>
-              } 
-            />
-            <Route 
-              path="/" 
-              element={
-                <AuthenticatedRoute>
-                  <Navigate to="/dashboard" replace />
                 </AuthenticatedRoute>
               } 
             />
