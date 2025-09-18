@@ -19,11 +19,11 @@ const AuthenticatedRoute = ({ children }: AuthenticatedRouteProps) => {
       </div>
     );
   }
-
-  if (!user) {
+  // 🔹 If loading is done and there's no user, redirect
+  if (!isLoading && !user) {
     return <Navigate to="/login" replace />;
   }
-
+  // 🔹 Otherwise render the protected content
   return <>{children}</>;
 };
 
