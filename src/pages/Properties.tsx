@@ -71,20 +71,24 @@ const Properties = () => {
   const [properties, setProperties] = useState<any[]>([]);
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchProperties = async () => {
       const { data, error } = await supabase
         .from("properties")
-        .select("*"); // you can specify columns if needed
+        .select("*")
+        .eq("id", "9f1e6df3-e2fb-44ea-a382-30f2326ca4fc"); // you can specify columns if needed
   
-      if (error) {
-        console.error("Error fetching properties:", error);
+      if (mounted) {
+        if (error) console.error("Error fetching properties:", error);
       } else {
         console.log(data);
-        setProperties(data);
+        setProperties(data || []);
       }
     };
   
     fetchProperties();
+    return () => { mounted = false };
   }, []);
 
   // Filter properties based on user role

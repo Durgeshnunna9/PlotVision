@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Home, Mail, Lock, UserRound, Phone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth,  } from '@/contexts/AuthContext';
 import heroImage from '@/assets/real-estate-hero.jpg';
 
 const Login = () => {
@@ -24,6 +24,7 @@ const Login = () => {
   const [agreed, setAgreed] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { login } = useAuth();
 
   // Redirect to appropriate page if already authenticated
   useEffect(() => {
@@ -159,44 +160,80 @@ const Login = () => {
       setIsLoading(false);
     }
   };
-
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-    
+    setError("");
+  try{
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        // Check if user needs onboarding (no role set)
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user?.id)
-          .single();
-          
-        if (!profile?.role) {
-          navigate('/onboarding');
-        } else {
-          navigate('/dashboard');
-        }
-      }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during login');
-    } finally {
-      setIsLoading(false);
+  
+    const { success, error } = await login(email, password);
+    console.log("Login result:", { success, error });
+  
+    if (!success) {
+      setError(error || "Login failed");
+      setIsLoading(false); // ✅ keep user on same page
+      return;
+    }
+  
+    // ✅ login successful, now check profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", (await supabase.auth.getUser()).data.user?.id)
+      .single();
+  
+    if (!profile?.role) {
+      navigate("/onboarding");
+    } else {
+      navigate("/dashboard");
+    }
+  
+    setIsLoading(false);
+  }
+    catch(err){
+      err
     }
   };
+  // const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
+  //   setIsLoading(true);
+  //   setError('');
+    
+  //   const formData = new FormData(e.currentTarget);
+  //   const email = formData.get("email") as string;
+  //   const password = formData.get("password") as string;
+
+  //   try {
+  //     const { data, error } = await supabase.auth.signInWithPassword({
+  //       email,
+  //       password,
+  //     });
+
+  //     if (error) {
+  //       setError(error.message);
+  //     } else {
+  //       // Check if user needs onboarding (no role set)
+  //       const { data: profile } = await supabase
+  //         .from('profiles')
+  //         .select('role')
+  //         .eq('id', data.user?.id)
+  //         .single();
+          
+  //       if (!profile?.role) {
+  //         navigate('/onboarding');
+  //       } else {
+  //         navigate('/dashboard');
+  //       }
+  //     }
+  //   } catch (err: any) {
+  //     setError(err.message || 'An error occurred during login');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -367,11 +404,7 @@ const Login = () => {
                   className="w-full btn-gradient"
                   disabled={isLoading}
                 >
-                  {isLoading
-                    ? 'Processing...'
-                    : isLogin
-                    ? 'Sign In'
-                    : 'Sign Up'}
+                  {isLoading  ? 'Processing...': isLogin ? 'Sign In' : 'Sign Up'}
                 </Button>
                 <Button onClick={handleGoogleSignIn} className='flex items-center bg-transparent text-black border-2 ml-10 hover:bg-gray-200'>
                   <img src="https://media.wired.com/photos/5926ffe47034dc5f91bed4e8/master/w_1604,h_802,c_limit/google-logo.jpg" className="h-6"/> {isLogin ? "Sign in with Google" : "Sign up with Google"}

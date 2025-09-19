@@ -147,15 +147,12 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
     }
   };
 
-  const handleVideoChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    field: "parking_videos" | "property_videos"
-  ) => {
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       setFormData((prev) => ({
         ...prev,
-        [field]: filesArray,
+        video: filesArray,
       }));
     }
   };
@@ -264,20 +261,21 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
       const payload = {
         ...dataToSubmit,
         user_id: user?.id,
-        // Convert boolean fields from string
-        corner_peice: typeof dataToSubmit.corner_peice === 'string' ? dataToSubmit.corner_peice === "yes" : dataToSubmit.corner_peice,
-        road_facing: typeof dataToSubmit.road_facing === 'string' ? dataToSubmit.road_facing === "yes" : dataToSubmit.road_facing, 
-        parking_availability: typeof dataToSubmit.parking_availability === 'string' ? dataToSubmit.parking_availability === "yes" : dataToSubmit.parking_availability,
-        washroom: typeof dataToSubmit.washroom === 'string' ? dataToSubmit.washroom === "yes" : dataToSubmit.washroom,
-        electricity: typeof dataToSubmit.electricity === 'string' ? dataToSubmit.electricity === "yes" : dataToSubmit.electricity,
-        generator: typeof dataToSubmit.generator === 'string' ? dataToSubmit.generator === "yes" : dataToSubmit.generator,
-        owner_contacted: typeof dataToSubmit.owner_contacted === 'string' ? dataToSubmit.owner_contacted === "yes" : dataToSubmit.owner_contacted,
-        // Handle file URLs and JSON fields
+        // Convert string "yes"/"no" fields to boolean
+        corner_peice: dataToSubmit.corner_peice === "yes",
+        road_facing: dataToSubmit.road_facing === "yes",
+        parking_availability: dataToSubmit.parking_availability === "yes",
+        washroom: dataToSubmit.washroom === "yes",
+        electricity: dataToSubmit.electricity === "yes",
+        generator: dataToSubmit.generator === "yes",
+        owner_contacted: dataToSubmit.owner_contacted === "yes",
+        // File URLs
         property_photos: propertyPhotosUrls.length ? propertyPhotosUrls : null,
         parking_photos: parkingPhotosUrls.length ? parkingPhotosUrls : null,
         video: videoUrls.length ? videoUrls : null,
-        facilities: formData.facilities.length ? formData.facilities : null,
-        advantages: formData.advantages.length ? formData.advantages : null,
+        // Arrays
+        facilities: facilities.length ? facilities : null,
+        advantages: advantages.length ? advantages : null,
       };
       
       // Insert into Supabase
@@ -373,6 +371,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
               className="border rounded p-2 w-full"
               placeholder="Enter the value of UserId"
               required
+              disabled
             />
         </div>
         <div className="p-4 m-1 mt-3 border">
@@ -872,7 +871,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
               type="file"
               accept="video/*"
               multiple
-              onChange={(e) => handleVideoChange(e, "parking_videos")}
+              onChange={handleVideoChange}
               className="w-full p-2 pl-2 rounded-sm"
             />
           </div>
@@ -933,7 +932,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
           type="submit"
           disabled={loading}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-          onClick={handleSubmit}
+          // onClick={handleSubmit}
         >
           
           {loading ? "Saving..." : "Save Property"}
