@@ -293,6 +293,8 @@ const Login = () => {
                         required
                       >
                         <option value="agent">Real Estate Agent</option>
+                        <option value="admin">Admin</option>
+                        <option value="manager">Manager</option>
                       </select>
                     </div>
                     <div className="space-y-2">
