@@ -43,7 +43,6 @@ const Agents = () => {
 
   // Fetch agents from Supabase
   useEffect(() => {
-    if(!isLoading) return;
     if (!user) return;
 
     let mounted = true;
@@ -52,15 +51,11 @@ const Agents = () => {
       setIsLoading(true);
 
       try {
-        let query = supabase.from("profiles").select("*");
-
-        if (user.role === "manager") {
-          query = query.eq("managerId", user.id);
-        }
+        let query = supabase.from("profiles").select("*").eq("role", "agent");
 
         if (searchTerm) {
           query = query.or(
-            `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,specialization.ilike.%${searchTerm}%`
+            `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`
           );
         }
 
@@ -83,8 +78,30 @@ const Agents = () => {
     };
 
     fetchAgents();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('agents-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: 'role=eq.agent'
+        },
+        (payload) => {
+          console.log('Agents change received:', payload);
+          if (mounted) {
+            fetchAgents(); // Refetch data on any change
+          }
+        }
+      )
+      .subscribe();
+    
     return () => {
       mounted = false;
+      supabase.removeChannel(channel);
     };
   }, [user, searchTerm]);
 
@@ -211,12 +228,12 @@ const Agents = () => {
                   <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-lg">
                     {agent.full_name?.split(" ").map((n) => n[0]).join("")}
                   </div>
-                  {/* <div>
+                  <div>
                     <CardTitle className="text-lg">{agent.full_name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {agent.specialization}
+                    <p className="text-sm text-muted-foreground capitalize">
+                      {agent.role}
                     </p>
-                  </div> */}
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <Button variant="outline" size="sm">

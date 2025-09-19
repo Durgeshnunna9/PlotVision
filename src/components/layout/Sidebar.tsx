@@ -87,7 +87,7 @@ const Sidebar = () => {
   const location = useLocation();
 
   const filteredItems = sidebarItems.filter(item => 
-    user && item.roles.includes(user.role)
+    user && user.role && item.roles.includes(user.role as 'admin' | 'agent' | 'manager')
   );
 
   return (

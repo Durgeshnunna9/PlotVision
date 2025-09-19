@@ -63,7 +63,6 @@ interface Property{
 const Properties = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showPropertyForm, setShowPropertyForm] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
@@ -74,31 +73,63 @@ const Properties = () => {
     let mounted = true;
 
     const fetchProperties = async () => {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("id", "9f1e6df3-e2fb-44ea-a382-30f2326ca4fc"); // you can specify columns if needed
+      let query = supabase.from("properties").select("*");
+      
+      // Filter based on user role
+      if (user?.role === 'agent') {
+        query = query.eq('user_id', user.id);
+      }
+      
+      const { data, error } = await query;
   
       if (mounted) {
-        if (error) console.error("Error fetching properties:", error);
-      } else {
-        console.log(data);
-        setProperties(data || []);
+        if (error) {
+          console.error("Error fetching properties:", error);
+          setProperties([]);
+        } else {
+          console.log(data);
+          setProperties(data || []);
+        }
       }
     };
+
+    if (user) {
+      fetchProperties();
+    }
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('properties-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'properties'
+        },
+        (payload) => {
+          console.log('Properties change received:', payload);
+          if (mounted) {
+            fetchProperties(); // Refetch data on any change
+          }
+        }
+      )
+      .subscribe();
   
-    fetchProperties();
-    return () => { mounted = false };
-  }, []);
+    return () => { 
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
-  // Filter properties based on user role
+  // Filter properties based on search and filters
   const filteredProperties = properties.filter(property => {
-    const matchesSearch = property.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || property.status.toLowerCase() === statusFilter.toLowerCase();
-    const matchesType = typeFilter === 'all' || property.property_type.toLowerCase() === typeFilter.toLowerCase();
-    const matchesAgent = user?.role === 'agent' ? property.agentId === user.id : true;
+    const matchesSearch = property.location?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         property.landmark?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         property.about_property?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === 'all' || property.property_type?.toLowerCase() === typeFilter.toLowerCase();
 
-    return matchesSearch && matchesStatus && matchesType && matchesAgent;
+    return matchesSearch && matchesType;
   });
 
   const getStatusColor = (status: string) => {
@@ -157,25 +188,13 @@ const Properties = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               placeholder="Search properties..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input-primary"
             />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="sold">Sold</SelectItem>
-                <SelectItem value="rented">Rented</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Type" />
