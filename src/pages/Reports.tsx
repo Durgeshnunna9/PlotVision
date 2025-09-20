@@ -1,47 +1,156 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Calendar, TrendingUp, DollarSign, Building, Users, BarChart3, PieChart } from 'lucide-react';
-import { mockAnalytics, mockAgents, mockProperties, mockClients } from '@/data/mockData';
+import { FileText, Download, Calendar, TrendingUp, DollarSign, Building, Users, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
+import { supabase } from '@/lib/supabaseClient';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedReport, setSelectedReport] = useState('overview');
+  const [selectedAgent, setSelectedAgent] = useState("all");
+
+  const [agents, setAgents] = useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--success))', 'hsl(var(--warning))'];
 
-  // Sample report data
+  // Fetch data from Supabase
+  async function fetchReportData(reportType: string) {
+    switch (reportType) {
+      case 'overview':
+        const { data: properties, error: propError } = await supabase
+          .from('properties')
+          .select('*');
+        const { data: clients, error: clientError } = await supabase
+          .from('clients')
+          .select('*');
+        if (propError || clientError) throw new Error('Failed to fetch overview data');
+        return { properties, clients };
+  
+      case 'agents':
+        const { data: agents, error: agentError } = await supabase
+          .from('agents')
+          .select('*');
+        if (agentError) throw new Error('Failed to fetch agents data');
+        return agents;
+  
+      case 'properties':
+        const { data: allProperties, error: allPropError } = await supabase
+          .from('properties')
+          .select('*');
+        if (allPropError) throw new Error('Failed to fetch properties data');
+        return allProperties;
+  
+      case 'clients':
+        const { data: allClients, error: allClientsError } = await supabase
+          .from('clients')
+          .select('*');
+        if (allClientsError) throw new Error('Failed to fetch clients data');
+        return allClients;
+  
+      default:
+        return [];
+    }
+  }
+
+  function exportToCSV(data: any[], fileName: string) {
+    if (!data || data.length === 0) {
+      alert('No data to export!');
+      return;
+    }
+  
+    const headers = Object.keys(data[0]);
+    const csvRows = [
+      headers.join(','), // header row
+      ...data.map(row => headers.map(h => `"${row[h] ?? ''}"`).join(',')) // data rows
+    ];
+  
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `${fileName}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+  
+  
+
+  function exportToPDF(data: any[], fileName: string) {
+    if (!data || data.length === 0) {
+      alert('No data to export!');
+      return;
+    }
+  
+    const doc = new jsPDF();
+  
+    const headers = [Object.keys(data[0])];
+    const rows = data.map(Object.values);
+  
+    // Cast doc to any so TypeScript doesn't complain about autoTable
+    (doc as any).autoTable({
+      head: headers,
+      body: rows
+    });
+  
+    doc.save(`${fileName}.pdf`);
+  }
+
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: agentsData } = await supabase.from('agents').select('*');
+      const { data: propertiesData } = await supabase.from('properties').select('*');
+      const { data: clientsData } = await supabase.from('clients').select('*');
+
+      setAgents(agentsData || []);
+      setProperties(propertiesData || []);
+      setClients(clientsData || []);
+    };
+
+    fetchData();
+  }, []);
+
+  // Generate report data dynamically
   const salesReport = [
-    { period: 'Q1 2024', revenue: 2850000, properties: 35, avgPrice: 425000 },
-    { period: 'Q2 2024', revenue: 3200000, properties: 42, avgPrice: 458000 },
-    { period: 'Q3 2024', revenue: 2980000, properties: 38, avgPrice: 442000 },
-    { period: 'Q4 2024', revenue: 3450000, properties: 45, avgPrice: 475000 }
+    {
+      period: 'This Month',
+      revenue: properties.reduce((sum, p) => sum + (p.price || 0), 0),
+      properties: properties.length,
+      avgPrice: properties.length ? Math.round(properties.reduce((sum, p) => sum + (p.price || 0), 0) / properties.length) : 0
+    }
   ];
 
-  const agentReport = mockAgents.map(agent => ({
+  const agentReport = agents.map(agent => ({
     name: agent.name,
-    sales: agent.totalSales,
-    listings: agent.activeListings,
-    clients: agent.clientsCount,
-    rating: agent.rating,
-    commission: agent.totalSales * 0.03 // 3% commission rate
+    sales: agent.total_sales || 0,
+    listings: agent.active_listings || 0,
+    clients: agent.clients_count || 0,
+    rating: agent.rating || 0,
+    commission: ((agent.total_sales || 0) * 0.03).toFixed(2)
   }));
 
-  const propertyReport = [
-    { type: 'Houses', sold: 28, avgPrice: 675000, totalRevenue: 18900000 },
-    { type: 'Apartments', sold: 45, avgPrice: 425000, totalRevenue: 19125000 },
-    { type: 'Condos', sold: 18, avgPrice: 580000, totalRevenue: 10440000 },
-    { type: 'Townhouses', sold: 12, avgPrice: 525000, totalRevenue: 6300000 }
-  ];
+  const propertyReport = ['Houses', 'Apartments', 'Condos', 'Townhouses'].map(type => {
+    const filtered = properties.filter(p => p.type === type);
+    const sold = filtered.length;
+    const totalRevenue = filtered.reduce((sum, p) => sum + (p.price || 0), 0);
+    const avgPrice = sold ? Math.round(totalRevenue / sold) : 0;
+    return { type, sold, avgPrice, totalRevenue };
+  });
 
-  const clientReport = [
-    { status: 'Active', count: mockClients.filter(c => c.status === 'active').length },
-    { status: 'Converted', count: mockClients.filter(c => c.status === 'converted').length },
-    { status: 'Inactive', count: mockClients.filter(c => c.status === 'inactive').length }
-  ];
+  const clientReport = ['Active', 'Converted', 'Inactive'].map(status => ({
+    status,
+    count: clients.filter(c => c.status?.toLowerCase() === status.toLowerCase()).length
+  }));
 
   const reportsData = {
     overview: {
@@ -65,34 +174,78 @@ const Reports = () => {
       data: clientReport
     }
   };
+  const agentPerformance = agents.map(agent => ({
+    name: agent.name.split(' ')[0] || "Unknown",
+    sales: agent.total_sales || 0,
+    listings: agent.active_listings || 0,
+    clients: agent.clients_count || 0,
+    rating: agent.rating || 0
+  }));
+  const filteredData = selectedAgent === 'all'
+    ? agentPerformance
+    : agentPerformance.filter(agent => agent.name === selectedAgent);
 
-  const exportReport = (format: string) => {
-    // Simulate export functionality
-    const reportData = reportsData[selectedReport as keyof typeof reportsData];
-    console.log(`Exporting ${reportData.title} as ${format.toUpperCase()}`);
-    // In a real app, this would generate and download the file
-  };
+
+  // const exportReport = (format: string) => {
+  //   const reportData = reportsData[selectedReport as keyof typeof reportsData];
+  //   console.log(`Exporting ${reportData.title} as ${format.toUpperCase()}`);
+  // };
 
   return (
     <div className="space-y-6 fade-in">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Reports & Analytics</h1>
           <p className="text-muted-foreground">Generate detailed business reports and insights</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => exportReport('pdf')}>
-            <Download className="h-4 w-4 mr-2" />
-            Export PDF
+          <Button
+            variant="outline"
+            onClick={async () => {
+              const data = await fetchReportData(selectedReport);
+              // Check if data is the overview object
+              if ('properties' in data && 'clients' in data) {
+                // Merge properties and clients into a single array
+                const exportData = [
+                  ...data.properties.map((p: any) => ({ ...p, type: 'Property' })),
+                  ...data.clients.map((c: any) => ({ ...c, type: 'Client' }))
+                ];
+                exportToPDF(exportData, selectedReport);
+              } else {
+                // data is already an array
+                exportToPDF(data, selectedReport);
+              }
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" /> Export PDF
           </Button>
-          <Button variant="outline" onClick={() => exportReport('csv')}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
+
+            <Button
+            variant="outline"
+            onClick={async () => {
+              const data = await fetchReportData(selectedReport);
+              
+              // Check if data is the overview object
+              if ('properties' in data && 'clients' in data) {
+                // Merge properties and clients into a single array
+                const exportData = [
+                  ...data.properties.map((p: any) => ({ ...p, type: 'Property' })),
+                  ...data.clients.map((c: any) => ({ ...c, type: 'Client' }))
+                ];
+                exportToCSV(exportData, selectedReport);
+              } else {
+                // data is already an array
+                exportToCSV(data, selectedReport);
+              }
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" /> Export CSV
           </Button>
         </div>
       </div>
 
-      {/* Report Controls */}
+      {/* Report Selector */}
       <Card className="card-premium">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -105,9 +258,7 @@ const Reports = () => {
             <div>
               <label className="text-sm font-medium mb-2 block">Report Type</label>
               <Select value={selectedReport} onValueChange={setSelectedReport}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select report type" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select report type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="overview">Business Overview</SelectItem>
                   <SelectItem value="agents">Agent Performance</SelectItem>
@@ -119,9 +270,7 @@ const Reports = () => {
             <div>
               <label className="text-sm font-medium mb-2 block">Time Period</label>
               <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select period" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select period" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="week">This Week</SelectItem>
                   <SelectItem value="month">This Month</SelectItem>
@@ -132,97 +281,26 @@ const Reports = () => {
             </div>
             <div className="flex items-end">
               <Button className="btn-primary w-full">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Generate Report
+                <BarChart3 className="h-4 w-4 mr-2" /> Generate Report
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold text-primary">$12.4M</p>
-                <div className="flex items-center gap-1 text-sm text-success">
-                  <TrendingUp className="h-4 w-4" />
-                  +18% YoY
-                </div>
-              </div>
-              <DollarSign className="h-8 w-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Properties Sold</p>
-                <p className="text-2xl font-bold text-success">103</p>
-                <div className="flex items-center gap-1 text-sm text-success">
-                  <TrendingUp className="h-4 w-4" />
-                  +12% YoY
-                </div>
-              </div>
-              <Building className="h-8 w-8 text-success" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Clients</p>
-                <p className="text-2xl font-bold text-accent">89</p>
-                <div className="flex items-center gap-1 text-sm text-success">
-                  <TrendingUp className="h-4 w-4" />
-                  +25% YoY
-                </div>
-              </div>
-              <Users className="h-8 w-8 text-accent" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Deal Size</p>
-                <p className="text-2xl font-bold text-warning">$485K</p>
-                <div className="flex items-center gap-1 text-sm text-success">
-                  <TrendingUp className="h-4 w-4" />
-                  +8% YoY
-                </div>
-              </div>
-              <BarChart3 className="h-8 w-8 text-warning" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Report Display */}
+      {/* Report Charts */}
       <Card className="card-premium">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
               <CardTitle>{reportsData[selectedReport as keyof typeof reportsData].title}</CardTitle>
-              <p className="text-muted-foreground">
-                {reportsData[selectedReport as keyof typeof reportsData].description}
-              </p>
+              <p className="text-muted-foreground">{reportsData[selectedReport as keyof typeof reportsData].description}</p>
             </div>
             <Badge variant="outline">{selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)}</Badge>
           </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Chart */}
             <div>
               {selectedReport === 'overview' && (
                 <ResponsiveContainer width="100%" height={300}>
@@ -230,36 +308,63 @@ const Reports = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="period" />
                     <YAxis />
-                    <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Revenue']} />
+                    <Tooltip formatter={v => [`$${Number(v).toLocaleString()}`, 'Revenue']} />
                     <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
-              
+
               {selectedReport === 'agents' && (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={agentReport}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Sales']} />
-                    <Bar dataKey="sales" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                <ResponsiveContainer width="100%" height={450}>
+                  <CardContent>
+                      {/* Container for dropdown + chart */}
+                      <div className="flex flex-col gap-4">
+                        {/* Dropdown */}
+                        <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+                          <SelectTrigger className="w-48">
+                            <SelectValue placeholder="Select Agent" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Agents</SelectItem>
+                            {agentPerformance.map(agent => (
+                              <SelectItem key={agent.name} value={agent.name}>{agent.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Chart */}
+                        <ResponsiveContainer width="100%" height={400}>
+                          <BarChart
+                            data={
+                              selectedAgent === 'all'
+                                ? agentPerformance
+                                : agentPerformance.filter(agent => agent.name === selectedAgent)
+                            }
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Sales']} />
+                            <Bar dataKey="sales" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
                 </ResponsiveContainer>
               )}
-              
+
               {selectedReport === 'properties' && (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={propertyReport}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="type" />
                     <YAxis />
-                    <Tooltip formatter={(value) => [Number(value), 'Properties Sold']} />
+                    <Tooltip formatter={v => [Number(v), 'Properties Sold']} />
                     <Bar dataKey="sold" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
-              
+
               {selectedReport === 'clients' && (
                 <ResponsiveContainer width="100%" height={300}>
                   <RechartsPieChart>
@@ -281,85 +386,6 @@ const Reports = () => {
                 </ResponsiveContainer>
               )}
             </div>
-
-            {/* Right Data Table */}
-            <div className="space-y-4">
-              <h4 className="font-semibold">Detailed Breakdown</h4>
-              <div className="space-y-2 max-h-72 overflow-y-auto">
-                {selectedReport === 'overview' && salesReport.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
-                    <div>
-                      <p className="font-medium">{item.period}</p>
-                      <p className="text-sm text-muted-foreground">{item.properties} properties</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">${(item.revenue / 1000000).toFixed(1)}M</p>
-                      <p className="text-sm text-muted-foreground">Avg: ${item.avgPrice.toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
-                
-                {selectedReport === 'agents' && agentReport.map((agent, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
-                    <div>
-                      <p className="font-medium">{agent.name}</p>
-                      <p className="text-sm text-muted-foreground">Rating: {agent.rating}/5</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">${(agent.sales / 1000000).toFixed(1)}M</p>
-                      <p className="text-sm text-muted-foreground">{agent.clients} clients</p>
-                    </div>
-                  </div>
-                ))}
-                
-                {selectedReport === 'properties' && propertyReport.map((property, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
-                    <div>
-                      <p className="font-medium">{property.type}</p>
-                      <p className="text-sm text-muted-foreground">{property.sold} sold</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">${(property.totalRevenue / 1000000).toFixed(1)}M</p>
-                      <p className="text-sm text-muted-foreground">Avg: ${property.avgPrice.toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
-                
-                {selectedReport === 'clients' && clientReport.map((client, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
-                    <div>
-                      <p className="font-medium">{client.status} Clients</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{client.count}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Report Actions */}
-      <Card className="card-premium">
-        <CardHeader>
-          <CardTitle>Export Options</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" onClick={() => exportReport('pdf')} className="h-20 flex-col">
-              <FileText className="h-8 w-8 mb-2" />
-              Export as PDF
-            </Button>
-            <Button variant="outline" onClick={() => exportReport('csv')} className="h-20 flex-col">
-              <Download className="h-8 w-8 mb-2" />
-              Download CSV
-            </Button>
-            <Button variant="outline" onClick={() => exportReport('email')} className="h-20 flex-col">
-              <Calendar className="h-8 w-8 mb-2" />
-              Schedule Email
-            </Button>
           </div>
         </CardContent>
       </Card>

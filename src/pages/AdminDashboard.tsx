@@ -1,16 +1,132 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import StatCard from '@/components/dashboard/StatCard';
 import PropertyCard from '@/components/dashboard/PropertyCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Users, UserCheck, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
-import { mockProperties, mockClients, mockAgents, mockAnalytics } from '@/data/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const AdminDashboard = () => {
-  const featuredProperties = mockProperties.filter(p => p.featured).slice(0, 3);
-  const recentClients = mockClients.slice(0, 5);
-  const topAgents = mockAgents.slice(0, 3);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState<number>(0);
+  const [analytics, setAnalytics] = useState<any>({
+    totalProperties: 0,
+    totalClients: 0,
+    activeAgents: 0,
+    monthlyRevenue: 0,
+    salesData: [],
+    propertyTypes: [],
+  });
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--success))', 'hsl(var(--warning))'];
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: propsData } = await supabase.from("properties").select("*");
+      const { data: clientsData } = await supabase.from("clients").select("*");
+      const { data: agentsData } = await supabase.from("agents").select("*");
+
+      const props = propsData || [];
+      const cls = clientsData || [];
+      const ags = agentsData || [];
+
+      setProperties(props);
+      setClients(cls);
+      setAgents(ags);
+
+      // Total revenue
+      const revenue = props.reduce((sum, p) => sum + (p.price || 0), 0);
+      setTotalRevenue(revenue);
+
+      // Example trend calculations: % change from last month
+      const lastMonthRevenue = props
+        .filter(
+          (p) =>
+            new Date(p.created_at).getMonth() === new Date().getMonth() - 1
+        )
+        .reduce((sum, p) => sum + (p.price || 0), 0);
+      const revenueTrend = lastMonthRevenue
+        ? ((revenue - lastMonthRevenue) / lastMonthRevenue) * 100
+        : 0;
+
+      const propsTrend =
+        props.length > 1 ? ((props.length - (props.length - 1)) / (props.length - 1)) * 100 : 0;
+      const clientsTrend =
+        cls.length > 1 ? ((cls.length - (cls.length - 1)) / (cls.length - 1)) * 100 : 0;
+      const agentsTrend =
+        ags.length > 1 ? ((ags.length - (ags.length - 1)) / (ags.length - 1)) * 100 : 0;
+
+      setAnalytics({
+        totalProperties: props.length,
+        totalClients: cls.length,
+        activeAgents: ags.filter((a) => a.is_active).length,
+        monthlyRevenue: revenue,
+        trends: {
+          properties: propsTrend,
+          clients: clientsTrend,
+          agents: agentsTrend,
+          revenue: revenueTrend,
+        },
+      });
+    };
+
+    fetchData();
+  }, []);
+  // Fetch data from Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      // Properties
+      const { data: propsData } = await supabase.from('properties').select('*');
+      setProperties(propsData || []);
+
+      // Clients
+      const { data: clientsData } = await supabase.from('clients').select('*');
+      setClients(clientsData || []);
+
+      // Agents
+      const { data: agentsData } = await supabase.from('agents').select('*');
+      setAgents(agentsData || []);
+
+      // Analytics
+      const totalProperties = propsData?.length || 0;
+      const totalClients = clientsData?.length || 0;
+      const activeAgents = agentsData?.filter(a => a.is_active).length || 0;
+      const monthlyRevenue = propsData?.reduce((sum, p) => sum + (p.price || 0), 0) || 0;
+
+      // Monthly sales data for chart
+      const salesDataMap: Record<string, number> = {};
+      propsData?.forEach((p) => {
+        const month = new Date(p.created_at).toLocaleString('default', { month: 'short' });
+        salesDataMap[month] = (salesDataMap[month] || 0) + (p.price || 0);
+      });
+      const salesData = Object.entries(salesDataMap).map(([month, sales]) => ({ month, sales }));
+
+      // Property types pie chart
+      const typeCount: Record<string, number> = {};
+      propsData?.forEach((p) => {
+        typeCount[p.type] = (typeCount[p.type] || 0) + 1;
+      });
+      const propertyTypes = Object.entries(typeCount).map(([type, count]) => ({ type, count }));
+
+      setAnalytics({
+        totalProperties,
+        totalClients,
+        activeAgents,
+        monthlyRevenue,
+        salesData,
+        propertyTypes,
+      });
+    };
+
+    fetchData();
+  }, []);
+
+  const featuredProperties = properties.filter(p => p.featured).slice(0, 3);
+  const recentClients = clients.slice(0, 5);
+  const topAgents = agents
+    .sort((a, b) => (b.total_sales || 0) - (a.total_sales || 0))
+    .slice(0, 3);
 
   return (
     <div className="space-y-6 fade-in">
@@ -23,30 +139,42 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Properties"
-          value={mockAnalytics.totalProperties}
+          value={analytics.totalProperties}
           icon={Building2}
-          trend={{ value: 12, isPositive: true }}
+          trend={{
+            value: Number(analytics.trends?.properties?.toFixed(1) || 0),
+            isPositive: (analytics.trends?.properties || 0) >= 0,
+          }}
           color="primary"
         />
         <StatCard
           title="Total Clients"
-          value={mockAnalytics.totalClients}
+          value={analytics.totalClients}
           icon={Users}
-          trend={{ value: 8, isPositive: true }}
+          trend={{
+            value: Number(analytics.trends?.clients?.toFixed(1) || 0),
+            isPositive: (analytics.trends?.clients || 0) >= 0,
+          }}
           color="success"
         />
         <StatCard
           title="Active Agents"
-          value={mockAnalytics.activeAgents}
+          value={analytics.activeAgents}
           icon={UserCheck}
-          trend={{ value: 5, isPositive: true }}
+          trend={{
+            value: Number(analytics.trends?.agents?.toFixed(1) || 0),
+            isPositive: (analytics.trends?.agents || 0) >= 0,
+          }}
           color="accent"
         />
         <StatCard
           title="Monthly Revenue"
-          value={`$${(mockAnalytics.monthlyRevenue / 1000000).toFixed(1)}M`}
+          value={`${(analytics.monthlyRevenue / 1000000).toFixed(1)}`}
           icon={DollarSign}
-          trend={{ value: 15, isPositive: true }}
+          trend={{
+            value: Number(analytics.trends?.revenue?.toFixed(1) || 0),
+            isPositive: (analytics.trends?.revenue || 0) >= 0,
+          }}
           color="warning"
         />
       </div>
@@ -63,7 +191,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockAnalytics.salesData}>
+              <BarChart data={analytics.salesData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
@@ -83,17 +211,34 @@ const AdminDashboard = () => {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={mockAnalytics.propertyTypes}
+                  data={analytics.propertyTypes}
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="count"
-                  label={({ type, percentage }) => `${type} ${percentage}%`}
+                  label={({ type, count }) => `${type}: ${count}`}
                 >
-                  {mockAnalytics.propertyTypes.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
+                  {analytics.propertyTypes && analytics.propertyTypes.length > 0 ? (
+                    <PieChart>
+                      <Pie
+                        data={analytics.propertyTypes}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="count"
+                        label={({ type, percentage }) => `${type} ${percentage}%`}
+                      >
+                        {analytics.propertyTypes.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  ) : (
+                    <p className="text-muted-foreground text-center">No data available</p>
+                  )}
                 </Pie>
                 <Tooltip />
               </PieChart>
@@ -150,7 +295,7 @@ const AdminDashboard = () => {
                     <p className="text-sm text-muted-foreground">{agent.specialization}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-primary">${agent.totalSales.toLocaleString()}</p>
+                    <p className="font-semibold text-primary">${agent.total_sales?.toLocaleString()}</p>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <span>⭐ {agent.rating}</span>
                     </div>

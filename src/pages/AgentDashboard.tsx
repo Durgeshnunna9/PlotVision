@@ -275,16 +275,6 @@ const AgentDashboard = () => {
   // This is used to calculate the trend of this month buildings
   
 
-  // Mock performance data for the agent
-  // const performanceData = [
-  //   { month: 'Jan', deals: 3, revenue: 850000 },
-  //   { month: 'Feb', deals: 4, revenue: 920000 },
-  //   { month: 'Mar', deals: 2, revenue: 780000 },
-  //   { month: 'Apr', deals: 5, revenue: 1100000 },
-  //   { month: 'May', deals: 3, revenue: 950000 },
-  //   { month: 'Jun', deals: 6, revenue: 1250000 }
-  // ];
-
   const getTaskPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':

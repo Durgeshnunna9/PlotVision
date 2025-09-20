@@ -12,7 +12,12 @@ import AuthenticatedRoute from "./components/AuthenticatedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Onboarding from "./pages/Onboarding";
+import Performance from "./pages/Performance";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
+import Reports from "./pages/Reports";
+import { Settings } from "lucide-react";
+import Tasks from "./pages/Tasks";
 
 const queryClient = new QueryClient();
 
@@ -70,25 +75,19 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            {/* <Route 
+            <Route 
               path="/tasks" 
               element={
                 <ProtectedRoute roles={['agent', 'manager']}>
-                  <div className="p-6">
-                    <h1 className="text-3xl font-bold">Tasks</h1>
-                    <p className="text-muted-foreground mt-2">Task management coming soon...</p>
-                  </div>
+                  <Tasks />
                 </ProtectedRoute>
               } 
-            /> */}
+            />
             <Route 
               path="/analytics" 
               element={
                 <ProtectedRoute roles={['admin', 'manager']}>
-                  <div className="p-6">
-                    <h1 className="text-3xl font-bold">Analytics</h1>
-                    <p className="text-muted-foreground mt-2">Analytics dashboard coming soon...</p>
-                  </div>
+                  <Analytics />
                 </ProtectedRoute>
               } 
             />
@@ -96,10 +95,7 @@ const App = () => (
               path="/performance" 
               element={
                 <ProtectedRoute roles={['agent']}>
-                  <div className="p-6">
-                    <h1 className="text-3xl font-bold">Performance</h1>
-                    <p className="text-muted-foreground mt-2">Performance metrics coming soon...</p>
-                  </div>
+                  <Performance />
                 </ProtectedRoute>
               } 
             />
@@ -107,10 +103,7 @@ const App = () => (
               path="/reports" 
               element={
                 <ProtectedRoute roles={['admin', 'manager']}>
-                  <div className="p-6">
-                    <h1 className="text-3xl font-bold">Reports</h1>
-                    <p className="text-muted-foreground mt-2">Reports dashboard coming soon...</p>
-                  </div>
+                  <Reports />
                 </ProtectedRoute>
               } 
             />
@@ -118,10 +111,7 @@ const App = () => (
               path="/settings" 
               element={
                 <ProtectedRoute roles={['admin']}>
-                  <div className="p-6">
-                    <h1 className="text-3xl font-bold">Settings</h1>
-                    <p className="text-muted-foreground mt-2">Settings panel coming soon...</p>
-                  </div>
+                  <Settings />
                 </ProtectedRoute>
               } 
             />

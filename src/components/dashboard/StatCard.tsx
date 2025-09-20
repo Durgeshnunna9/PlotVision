@@ -9,7 +9,7 @@ interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
-  color?: 'primary' | 'success' | 'warning' | 'accent';
+  color?: 'primary' | 'success' | 'warning' | 'accent' | 'cyan' | 'purple' | 'teal';
 }
 
 const StatCard = ({ title, value, icon: Icon, trend, color = 'primary' }: StatCardProps) => {
@@ -21,6 +21,12 @@ const StatCard = ({ title, value, icon: Icon, trend, color = 'primary' }: StatCa
         return 'text-warning';
       case 'accent':
         return 'text-accent';
+      case 'cyan':
+        return 'text-cyan';
+      case 'purple':
+        return 'text-purple';
+      case 'teal':
+        return 'text-teal';
       default:
         return 'text-primary';
     }

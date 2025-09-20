@@ -1,86 +1,109 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, TrendingDown, Target, Award, DollarSign, Building, Users, Calendar, Star } from 'lucide-react';
-import { mockAgents, mockProperties, mockClients } from '@/data/mockData';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, RadialBarChart, RadialBar } from 'recharts';
+import { TrendingUp, TrendingDown, Target, Award, IndianRupee, Building, Users, Calendar, Star, BarChart as BarChartIcon, } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabaseClient';
+import { useState, useEffect } from 'react';
 
 const Performance = () => {
-  const { user } = useAuth();
-  
-  // Get current agent data
-  const currentAgent = mockAgents.find(agent => agent.id === user?.id) || mockAgents[0];
-  
-  // Sample performance data for the agent
-  const monthlyPerformance = [
-    { month: 'Jan', sales: 280000, listings: 3, clients: 4 },
-    { month: 'Feb', sales: 320000, listings: 4, clients: 5 },
-    { month: 'Mar', sales: 180000, listings: 2, clients: 3 },
-    { month: 'Apr', sales: 450000, listings: 6, clients: 8 },
-    { month: 'May', sales: 380000, listings: 5, clients: 6 },
-    { month: 'Jun', sales: 420000, listings: 5, clients: 7 }
-  ];
+  const { user } = useAuth()
+  const [agent, setAgent] = useState<any>(null)
+  const [properties, setProperties] = useState<any[]>([])
+  const [clients, setClients] = useState<any[]>([])
+  const [monthlyPerformance, setMonthlyPerformance] = useState<any[]>([])
 
-  // Performance goals data
-  const goals = [
-    { 
-      title: 'Monthly Sales Target', 
-      current: 420000, 
-      target: 500000, 
-      percentage: 84,
-      icon: DollarSign,
-      color: 'text-primary'
-    },
-    { 
-      title: 'New Listings Goal', 
-      current: 5, 
-      target: 6, 
-      percentage: 83,
-      icon: Building,
-      color: 'text-success'
-    },
-    { 
-      title: 'Client Acquisition', 
-      current: 7, 
-      target: 8, 
-      percentage: 88,
-      icon: Users,
-      color: 'text-accent'
-    },
-    { 
-      title: 'Customer Rating', 
-      current: 4.8, 
-      target: 5.0, 
-      percentage: 96,
-      icon: Star,
-      color: 'text-warning'
+  // Fetch all needed data
+  useEffect(() => {
+    if (!user) return
+
+    const fetchData = async () => {
+      // Agent profile
+      const { data: agentData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+      setAgent(agentData)
+
+      // Properties assigned to agent
+      const { data: propsData } = await supabase
+        .from("properties")
+        .select("*")
+        .eq("agent_id", user.id)
+        .order("created_at", { ascending: false })
+      setProperties(propsData || [])
+
+      // Clients assigned to agent
+      const { data: clientsData } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("agent_id", user.id)
+        .order("created_at", { ascending: false })
+      setClients(clientsData || [])
+
+      // Sales trend (aggregate deals per month)
+      const { data: perfData, error } = await supabase.rpc("get_agent_performance", {
+        agent_uuid: user.id,
+        interval: "month",
+      })
+      if (!error) setMonthlyPerformance(perfData || [])
     }
-  ];
 
-  // Achievements data
-  const achievements = [
-    { title: 'Top Performer', description: 'Highest sales this quarter', earned: true },
-    { title: 'Client Champion', description: '95% satisfaction rate', earned: true },
-    { title: 'Quick Closer', description: 'Average 21 days to close', earned: true },
-    { title: 'Million Dollar Club', description: 'Over $1M in sales', earned: false },
-    { title: 'Listing Master', description: '20+ active listings', earned: false },
-    { title: 'Referral Pro', description: '50% referral rate', earned: false }
-  ];
+    fetchData()
+  }, [user])
 
-  // My properties and clients (filtered for current agent)
-  const myProperties = mockProperties.filter(p => p.agentId === currentAgent.id);
-  const myClients = mockClients.filter(c => c.agentId === currentAgent.id);
+  if (!agent) {
+    return <p>Loading performance data...</p>
+  }
+
+  // Example goals (could also be in DB)
+  const goals = [
+    {
+      title: "Monthly Sales Target",
+      current: agent?.this_month_sales || 0,
+      target: agent?.monthly_sales_target || 500000,
+      percentage: ((agent?.this_month_sales || 0) / (agent?.monthly_sales_target || 1)) * 100,
+      icon: IndianRupee,
+      color: "text-primary",
+    },
+    {
+      title: "New Listings Goal",
+      current: agent?.this_month_listings || 0,
+      target: 6,
+      percentage: ((agent?.this_month_listings || 0) / 6) * 100,
+      icon: Building,
+      color: "text-success",
+    },
+    {
+      title: "Client Acquisition",
+      current: agent?.this_month_clients || 0,
+      target: 8,
+      percentage: ((agent?.this_month_clients || 0) / 8) * 100,
+      icon: Users,
+      color: "text-accent",
+    },
+    {
+      title: "Customer Rating",
+      current: agent?.rating || 0,
+      target: 5,
+      percentage: ((agent?.rating || 0) / 5) * 100,
+      icon: Star,
+      color: "text-warning",
+    },
+  ]
 
   return (
     <div className="space-y-6 fade-in">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">My Performance</h1>
           <p className="text-muted-foreground">Track your personal metrics and achievements</p>
         </div>
-        <Badge className="bg-primary/10 text-primary px-4 py-2 text-lg">
-          Rating: {currentAgent.rating}/5.0
+        <Badge className="bg-primary/10 text-primary px-4 py-2 text-lg hover:bg-gray-200">
+          Rating: {agent?.rating || 0.0}/5.0
         </Badge>
       </div>
 
@@ -92,14 +115,10 @@ const Performance = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Total Sales</p>
                 <p className="text-2xl font-bold text-primary">
-                  ${(currentAgent.totalSales / 1000000).toFixed(1)}M
+                  {agent?.total_sales ? (agent.total_sales / 1000000).toFixed(1) + "K" : "₹0.0"}
                 </p>
-                <div className="flex items-center gap-1 text-sm text-success">
-                  <TrendingUp className="h-4 w-4" />
-                  +15%
-                </div>
               </div>
-              <DollarSign className="h-8 w-8 text-primary" />
+              <IndianRupee className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -109,11 +128,7 @@ const Performance = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Listings</p>
-                <p className="text-2xl font-bold text-success">{currentAgent.activeListings}</p>
-                <div className="flex items-center gap-1 text-sm text-success">
-                  <TrendingUp className="h-4 w-4" />
-                  +2
-                </div>
+                <p className="text-2xl font-bold text-success">{agent.active_listings || 0}</p>
               </div>
               <Building className="h-8 w-8 text-success" />
             </div>
@@ -125,11 +140,7 @@ const Performance = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Clients</p>
-                <p className="text-2xl font-bold text-accent">{currentAgent.clientsCount}</p>
-                <div className="flex items-center gap-1 text-sm text-success">
-                  <TrendingUp className="h-4 w-4" />
-                  +3
-                </div>
+                <p className="text-2xl font-bold text-accent">{agent.clients_count || 0}</p>
               </div>
               <Users className="h-8 w-8 text-accent" />
             </div>
@@ -141,11 +152,7 @@ const Performance = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Avg. Days to Close</p>
-                <p className="text-2xl font-bold text-warning">21</p>
-                <div className="flex items-center gap-1 text-sm text-success">
-                  <TrendingDown className="h-4 w-4" />
-                  -5 days
-                </div>
+                <p className="text-2xl font-bold text-warning">{agent.avg_days_to_close || 0}</p>
               </div>
               <Calendar className="h-8 w-8 text-warning" />
             </div>
@@ -153,7 +160,7 @@ const Performance = () => {
         </Card>
       </div>
 
-      {/* Goals Progress */}
+      {/* Goals */}
       <Card className="card-premium">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -163,38 +170,32 @@ const Performance = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {goals.map((goal, index) => {
-              const Icon = goal.icon;
+            {goals.map((goal, i) => {
+              const Icon = goal.icon
               return (
-                <div key={index} className="space-y-3">
+                <div key={i} className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Icon className={`h-5 w-5 ${goal.color}`} />
                       <span className="font-medium">{goal.title}</span>
                     </div>
-                    <span className="text-sm text-muted-foreground">{goal.percentage}%</span>
+                    <span className="text-sm text-muted-foreground">
+                      {goal.percentage.toFixed(0)}%
+                    </span>
                   </div>
                   <Progress value={goal.percentage} className="h-2" />
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>
-                      {typeof goal.current === 'number' && goal.current > 1000 
-                        ? `$${(goal.current / 1000).toFixed(0)}k` 
-                        : goal.current}
-                    </span>
-                    <span>
-                      {typeof goal.target === 'number' && goal.target > 1000 
-                        ? `$${(goal.target / 1000).toFixed(0)}k` 
-                        : goal.target}
-                    </span>
+                    <span>{goal.current}</span>
+                    <span>{goal.target}</span>
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
         </CardContent>
       </Card>
 
-      {/* Performance Charts */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sales Trend */}
         <Card className="card-premium">
@@ -208,26 +209,21 @@ const Performance = () => {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={monthlyPerformance}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="period" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Sales']} />
-                <Line 
-                  type="monotone" 
-                  dataKey="sales" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={3}
-                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
-                />
+                <Tooltip formatter={(val) => [`$${Number(val).toLocaleString()}`, "Sales"]} />
+                <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={3} />
+                <Line type="monotone" dataKey="commission" stroke="hsl(var(--accent))" strokeWidth={3} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Activity Chart */}
+        {/* Activity */}
         <Card className="card-premium">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart className="h-5 w-5" />
+              <BarChartIcon className="h-5 w-5" />
               Monthly Activity
             </CardTitle>
           </CardHeader>
@@ -235,49 +231,32 @@ const Performance = () => {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyPerformance}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="period" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="listings" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} name="Listings" />
-                <Bar dataKey="clients" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} name="New Clients" />
+                <Bar dataKey="deals" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} name="Deals" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Achievements */}
+      {/* Recent Properties */}
       <Card className="card-premium">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5" />
-            Achievements & Badges
-          </CardTitle>
+          <CardTitle>My Recent Listings</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {achievements.map((achievement, index) => (
-              <div
-                key={index}
-                className={`p-4 rounded-lg border transition-all ${
-                  achievement.earned
-                    ? 'bg-primary/5 border-primary/20'
-                    : 'bg-muted/30 border-muted/50 opacity-60'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    achievement.earned ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
-                    <Award className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">{achievement.title}</h4>
-                    <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                    {achievement.earned && (
-                      <Badge className="mt-2 bg-success/10 text-success">Earned</Badge>
-                    )}
-                  </div>
+          <div className="space-y-3">
+            {properties.slice(0, 5).map((p) => (
+              <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <div>
+                  <p className="font-medium">{p.title}</p>
+                  <p className="text-sm text-muted-foreground">{p.address}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold">${p.price.toLocaleString()}</p>
+                  <Badge>{p.status}</Badge>
                 </div>
               </div>
             ))}
@@ -285,68 +264,30 @@ const Performance = () => {
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* My Recent Properties */}
-        <Card className="card-premium">
-          <CardHeader>
-            <CardTitle>My Recent Listings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {myProperties.slice(0, 5).map((property) => (
-                <div key={property.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                  <div>
-                    <p className="font-medium">{property.title}</p>
-                    <p className="text-sm text-muted-foreground">{property.address}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">${property.price.toLocaleString()}</p>
-                    <Badge className={`text-xs ${
-                      property.status === 'available' ? 'bg-success/10 text-success' :
-                      property.status === 'pending' ? 'bg-warning/10 text-warning' :
-                      'bg-primary/10 text-primary'
-                    }`}>
-                      {property.status}
-                    </Badge>
-                  </div>
+      {/* Recent Clients */}
+      <Card className="card-premium">
+        <CardHeader>
+          <CardTitle>My Recent Clients</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {clients.slice(0, 5).map((c) => (
+              <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <div>
+                  <p className="font-medium">{c.name}</p>
+                  <p className="text-sm text-muted-foreground">{c.email}</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* My Recent Clients */}
-        <Card className="card-premium">
-          <CardHeader>
-            <CardTitle>My Recent Clients</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {myClients.slice(0, 5).map((client) => (
-                <div key={client.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                  <div>
-                    <p className="font-medium">{client.name}</p>
-                    <p className="text-sm text-muted-foreground">{client.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge className={`text-xs ${
-                      client.status === 'active' ? 'bg-success/10 text-success' :
-                      client.status === 'converted' ? 'bg-primary/10 text-primary' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
-                      {client.status}
-                    </Badge>
-                    <p className="text-xs text-muted-foreground mt-1">{client.type}</p>
-                  </div>
+                <div className="text-right">
+                  <Badge>{c.status}</Badge>
+                  <p className="text-xs text-muted-foreground mt-1">{c.type}</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  );
-};
+  )
+}
 
-export default Performance;
+export default Performance

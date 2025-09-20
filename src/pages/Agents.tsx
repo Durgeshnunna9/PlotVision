@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import ClientsModal from '@/components/dashboard/ClientsModal';
 import {
   UserCheck,
   Plus,
@@ -21,6 +22,12 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 
+interface ClientsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  clients: { id: string; name: string; email: string; phone: string }[];
+}
+
 type Agent = {
   id: string;
   full_name: string;
@@ -28,11 +35,11 @@ type Agent = {
   email?: string;
   avatar_url?: string;
   role: "admin" | "agent" | "manager" | string;
-  // specialization?: string;
-  // totalSales?: number;
-  // activeListings?: number;
-  // clientsCount?: number;
-  // rating?: number;
+  specialization?: string;
+  totalSales?: number;
+  activeListings?: number;
+  clientsCount?: number;
+  rating?: number;
 };
 
 const Agents = () => {
@@ -40,6 +47,16 @@ const Agents = () => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      const { data } = await supabase.from('clients').select('*');
+      setClients(data || []);
+    };
+    fetchClients();
+  }, []);
 
   // Fetch agents from Supabase
   useEffect(() => {
@@ -105,12 +122,12 @@ const Agents = () => {
     };
   }, [user, searchTerm]);
 
-  // Aggregate stats
-  // const totalSales = agents.reduce((sum, agent) => sum + (agent.totalSales || 0), 0);
-  // const avgRating =
-  //   agents.length > 0
-  //     ? agents.reduce((sum, agent) => sum + (agent.rating || 0), 0) / agents.length
-  //     : 0;
+  //Aggregate stats
+  const totalSales = agents.reduce((sum, agent) => sum + (agent.totalSales || 0), 0);
+  const avgRating =
+    agents.length > 0
+      ? agents.reduce((sum, agent) => sum + (agent.rating || 0), 0) / agents.length
+      : 0;
 
   if (isLoading) {
     return (
@@ -161,9 +178,9 @@ const Agents = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Sales</p>
-                {/* <p className="text-2xl font-bold text-success">
-                  ₹{(totalSales / 1000000).toFixed(1)}M
-                </p> */}
+                <p className="text-2xl font-bold text-success">
+                  ₹{(totalSales / 1000000).toFixed(1)}K
+                </p>
               </div>
               <TrendingUp className="h-8 w-8 text-success" />
             </div>
@@ -174,9 +191,9 @@ const Agents = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Listings</p>
-                {/* <p className="text-2xl font-bold text-accent">
+                <p className="text-2xl font-bold text-accent">
                   {agents.reduce((sum, agent) => sum + (agent.activeListings || 0), 0)}
-                </p> */}
+                </p>
               </div>
               <Building className="h-8 w-8 text-accent" />
             </div>
@@ -187,7 +204,7 @@ const Agents = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Avg Rating</p>
-                {/* <p className="text-2xl font-bold text-warning">{avgRating.toFixed(1)}</p> */}
+                <p className="text-2xl font-bold text-warning">{avgRating.toFixed(1)}</p>
               </div>
               <Star className="h-8 w-8 text-warning" />
             </div>
@@ -260,20 +277,20 @@ const Agents = () => {
                   </div>
                 </div>
 
-                {/* <div className="space-y-3">
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Total Sales</span>
                     <span className="text-sm font-bold text-primary">
-                      ₹{((agent.totalSales ?? 0) / 1000000).toFixed(1)}M
+                      ₹{((agent.totalSales ?? 0) / 1000000).toFixed(1)}
                     </span>
                   </div>
                   <Progress
                     value={Math.min(((agent.totalSales ?? 0) / 3000000) * 100, 100)}
                     className="h-2"
                   />
-                </div> */}
+                </div>
 
-                {/* <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="p-2 rounded-lg bg-muted/30">
                     <div className="text-lg font-bold text-primary">
                       {agent.activeListings ?? 0}
@@ -292,10 +309,10 @@ const Agents = () => {
                     </div>
                     <div className="text-xs text-muted-foreground">Rating</div>
                   </div>
-                </div> */}
+                </div>
 
                 {/* Rating stars */}
-                {/* <div className="flex items-center justify-center gap-1 text-sm">
+                <div className="flex items-center justify-center gap-1 text-sm">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
                       key={star}
@@ -309,17 +326,22 @@ const Agents = () => {
                   <span className="ml-2 text-muted-foreground">
                     ({agent.rating ?? 0})
                   </span>
-                </div> */}
+                </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  {/* <Button variant="outline" size="sm" className="flex-1">
                     <Mail className="h-4 w-4 mr-1" />
                     Contact
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
+                  </Button> */}
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowModal(true)}>
                     <Users className="h-4 w-4 mr-1" />
                     Clients
                   </Button>
+                  <ClientsModal
+                    isOpen={showModal}
+                    onClose={() => setShowModal(false)}
+                    clients={clients}
+                  />
                 </div>
               </div>
             </CardContent>
