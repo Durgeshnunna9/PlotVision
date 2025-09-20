@@ -14,9 +14,10 @@ import Dashboard from "./pages/Dashboard";
 import Onboarding from "./pages/Onboarding";
 import Performance from "./pages/Performance";
 import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Reports from "./pages/Reports";
-import { Settings } from "lucide-react";
+// import { Settings } from "lucide-react";
 import Tasks from "./pages/Tasks";
 
 const queryClient = new QueryClient();
@@ -31,7 +32,6 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Login />} />
-            {/* <Route path="/login" element={<Login />} /> */}
             <Route 
               path="/onboarding" 
               element={
@@ -100,6 +100,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/users" 
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <UserManagement />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/reports" 
               element={
                 <ProtectedRoute roles={['admin', 'manager']}>
@@ -113,16 +121,11 @@ const App = () => (
                 <ProtectedRoute roles={['admin']}>
                   <Settings />
                 </ProtectedRoute>
+                
               } 
             />
-            <Route 
-              path="/users" 
-              element={
-                <ProtectedRoute roles={['admin']}>
-                  <UserManagement />
-                </ProtectedRoute>
-              } 
-            />
+            
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>

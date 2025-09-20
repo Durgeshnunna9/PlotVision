@@ -5,16 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Settings as SettingsIcon, User, Bell, Shield, Database, Mail, Palette, Globe } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Shield, Database, Mail, Globe } from 'lucide-react';
 
 const Settings = () => {
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
     sms: true,
-    marketing: false
+    marketing: false,
   });
 
   const [profile, setProfile] = useState({
@@ -25,7 +24,7 @@ const Settings = () => {
     city: 'New York',
     state: 'NY',
     zipCode: '10001',
-    website: 'www.realtypro.com'
+    website: 'www.realtypro.com',
   });
 
   const [system, setSystem] = useState({
@@ -33,14 +32,17 @@ const Settings = () => {
     dateFormat: 'MM/DD/YYYY',
     currency: 'USD',
     language: 'en',
-    theme: 'system'
+    theme: 'system',
   });
 
   return (
-    <div className="space-y-6 fade-in">
+    <div className="p-6 space-y-6 fade-in">
+      {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground">Manage your application settings and preferences</p>
+        <p className="text-muted-foreground">
+          Manage your application settings and preferences
+        </p>
       </div>
 
       {/* Company Profile */}
@@ -58,8 +60,9 @@ const Settings = () => {
               <Input
                 id="companyName"
                 value={profile.companyName}
-                onChange={(e) => setProfile({ ...profile, companyName: e.target.value })}
-                className="input-primary"
+                onChange={(e) =>
+                  setProfile({ ...profile, companyName: e.target.value })
+                }
               />
             </div>
             <div>
@@ -68,8 +71,9 @@ const Settings = () => {
                 id="companyEmail"
                 type="email"
                 value={profile.companyEmail}
-                onChange={(e) => setProfile({ ...profile, companyEmail: e.target.value })}
-                className="input-primary"
+                onChange={(e) =>
+                  setProfile({ ...profile, companyEmail: e.target.value })
+                }
               />
             </div>
             <div>
@@ -77,8 +81,9 @@ const Settings = () => {
               <Input
                 id="companyPhone"
                 value={profile.companyPhone}
-                onChange={(e) => setProfile({ ...profile, companyPhone: e.target.value })}
-                className="input-primary"
+                onChange={(e) =>
+                  setProfile({ ...profile, companyPhone: e.target.value })
+                }
               />
             </div>
             <div>
@@ -86,22 +91,24 @@ const Settings = () => {
               <Input
                 id="website"
                 value={profile.website}
-                onChange={(e) => setProfile({ ...profile, website: e.target.value })}
-                className="input-primary"
+                onChange={(e) =>
+                  setProfile({ ...profile, website: e.target.value })
+                }
               />
             </div>
           </div>
-          
+
           <div>
             <Label htmlFor="address">Address</Label>
             <Input
               id="address"
               value={profile.address}
-              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-              className="input-primary"
+              onChange={(e) =>
+                setProfile({ ...profile, address: e.target.value })
+              }
             />
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="city">City</Label>
@@ -109,7 +116,6 @@ const Settings = () => {
                 id="city"
                 value={profile.city}
                 onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                className="input-primary"
               />
             </div>
             <div>
@@ -117,8 +123,9 @@ const Settings = () => {
               <Input
                 id="state"
                 value={profile.state}
-                onChange={(e) => setProfile({ ...profile, state: e.target.value })}
-                className="input-primary"
+                onChange={(e) =>
+                  setProfile({ ...profile, state: e.target.value })
+                }
               />
             </div>
             <div>
@@ -126,12 +133,13 @@ const Settings = () => {
               <Input
                 id="zipCode"
                 value={profile.zipCode}
-                onChange={(e) => setProfile({ ...profile, zipCode: e.target.value })}
-                className="input-primary"
+                onChange={(e) =>
+                  setProfile({ ...profile, zipCode: e.target.value })
+                }
               />
             </div>
           </div>
-          
+
           <Button className="btn-primary">Save Profile</Button>
         </CardContent>
       </Card>
@@ -148,24 +156,42 @@ const Settings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="timezone">Timezone</Label>
-              <Select value={system.timezone} onValueChange={(value) => setSystem({ ...system, timezone: value })}>
+              <Select
+                value={system.timezone}
+                onValueChange={(value) =>
+                  setSystem({ ...system, timezone: value })
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select timezone" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="America/New_York">Eastern Time (EST/EDT)</SelectItem>
-                  <SelectItem value="America/Chicago">Central Time (CST/CDT)</SelectItem>
-                  <SelectItem value="America/Denver">Mountain Time (MST/MDT)</SelectItem>
-                  <SelectItem value="America/Los_Angeles">Pacific Time (PST/PDT)</SelectItem>
+                  <SelectItem value="America/New_York">
+                    Eastern Time (EST/EDT)
+                  </SelectItem>
+                  <SelectItem value="America/Chicago">
+                    Central Time (CST/CDT)
+                  </SelectItem>
+                  <SelectItem value="America/Denver">
+                    Mountain Time (MST/MDT)
+                  </SelectItem>
+                  <SelectItem value="America/Los_Angeles">
+                    Pacific Time (PST/PDT)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="dateFormat">Date Format</Label>
-              <Select value={system.dateFormat} onValueChange={(value) => setSystem({ ...system, dateFormat: value })}>
+              <Select
+                value={system.dateFormat}
+                onValueChange={(value) =>
+                  setSystem({ ...system, dateFormat: value })
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select format" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
@@ -174,12 +200,17 @@ const Settings = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="currency">Currency</Label>
-              <Select value={system.currency} onValueChange={(value) => setSystem({ ...system, currency: value })}>
+              <Select
+                value={system.currency}
+                onValueChange={(value) =>
+                  setSystem({ ...system, currency: value })
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USD">US Dollar (USD)</SelectItem>
@@ -189,12 +220,17 @@ const Settings = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="language">Language</Label>
-              <Select value={system.language} onValueChange={(value) => setSystem({ ...system, language: value })}>
+              <Select
+                value={system.language}
+                onValueChange={(value) =>
+                  setSystem({ ...system, language: value })
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select language" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="en">English</SelectItem>
@@ -205,7 +241,7 @@ const Settings = () => {
               </Select>
             </div>
           </div>
-          
+
           <Button className="btn-primary">Save Preferences</Button>
         </CardContent>
       </Card>
@@ -219,56 +255,44 @@ const Settings = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Email Notifications</Label>
-              <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+          {[
+            {
+              key: 'email',
+              label: 'Email Notifications',
+              desc: 'Receive notifications via email',
+            },
+            {
+              key: 'push',
+              label: 'Push Notifications',
+              desc: 'Receive push notifications in browser',
+            },
+            {
+              key: 'sms',
+              label: 'SMS Notifications',
+              desc: 'Receive important updates via SMS',
+            },
+            {
+              key: 'marketing',
+              label: 'Marketing Communications',
+              desc: 'Receive product updates and tips',
+            },
+          ].map((item, idx) => (
+            <div key={item.key}>
+              {idx > 0 && <Separator />}
+              <div className="flex items-center justify-between py-2">
+                <div className="space-y-0.5">
+                  <Label>{item.label}</Label>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
+                <Switch
+                  checked={notifications[item.key as keyof typeof notifications]}
+                  onCheckedChange={(checked) =>
+                    setNotifications({ ...notifications, [item.key]: checked })
+                  }
+                />
+              </div>
             </div>
-            <Switch
-              checked={notifications.email}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, email: checked })}
-            />
-          </div>
-          
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Push Notifications</Label>
-              <p className="text-sm text-muted-foreground">Receive push notifications in browser</p>
-            </div>
-            <Switch
-              checked={notifications.push}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, push: checked })}
-            />
-          </div>
-          
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>SMS Notifications</Label>
-              <p className="text-sm text-muted-foreground">Receive important updates via SMS</p>
-            </div>
-            <Switch
-              checked={notifications.sms}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, sms: checked })}
-            />
-          </div>
-          
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Marketing Communications</Label>
-              <p className="text-sm text-muted-foreground">Receive product updates and tips</p>
-            </div>
-            <Switch
-              checked={notifications.marketing}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, marketing: checked })}
-            />
-          </div>
-          
+          ))}
           <Button className="btn-primary">Save Notification Settings</Button>
         </CardContent>
       </Card>
@@ -285,55 +309,42 @@ const Settings = () => {
           <div className="space-y-4">
             <div>
               <Label htmlFor="currentPassword">Current Password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                placeholder="Enter current password"
-                className="input-primary"
-              />
+              <Input id="currentPassword" type="password" />
             </div>
-            
             <div>
               <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                placeholder="Enter new password"
-                className="input-primary"
-              />
+              <Input id="newPassword" type="password" />
             </div>
-            
             <div>
               <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm new password"
-                className="input-primary"
-              />
+              <Input id="confirmPassword" type="password" />
             </div>
           </div>
-          
+
           <Separator />
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+              <div>
                 <Label>Two-Factor Authentication</Label>
-                <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
+                <p className="text-sm text-muted-foreground">
+                  Add an extra layer of security
+                </p>
               </div>
               <Button variant="outline">Enable 2FA</Button>
             </div>
-            
+
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+              <div>
                 <Label>Session Management</Label>
-                <p className="text-sm text-muted-foreground">Manage active sessions</p>
+                <p className="text-sm text-muted-foreground">
+                  Manage active sessions
+                </p>
               </div>
               <Button variant="outline">View Sessions</Button>
             </div>
           </div>
-          
+
           <Button className="btn-primary">Update Security Settings</Button>
         </CardContent>
       </Card>
@@ -365,12 +376,13 @@ const Settings = () => {
               Delete All Data
             </Button>
           </div>
-          
+
           <div className="mt-6 p-4 bg-muted/30 rounded-lg">
             <h4 className="font-semibold mb-2">Data Retention Policy</h4>
             <p className="text-sm text-muted-foreground">
-              Your data is automatically backed up daily and retained for 90 days. 
-              You can manually export your data at any time. Deleted data cannot be recovered after 30 days.
+              Your data is automatically backed up daily and retained for 90
+              days. You can manually export your data at any time. Deleted data
+              cannot be recovered after 30 days.
             </p>
           </div>
         </CardContent>
@@ -383,9 +395,15 @@ const Settings = () => {
             RealtyPro v2.1.0 • Last updated: January 2024
           </p>
           <div className="flex justify-center gap-4 mt-4">
-            <Button variant="ghost" size="sm">Privacy Policy</Button>
-            <Button variant="ghost" size="sm">Terms of Service</Button>
-            <Button variant="ghost" size="sm">Support</Button>
+            <Button variant="ghost" size="sm">
+              Privacy Policy
+            </Button>
+            <Button variant="ghost" size="sm">
+              Terms of Service
+            </Button>
+            <Button variant="ghost" size="sm">
+              Support
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -394,3 +412,4 @@ const Settings = () => {
 };
 
 export default Settings;
+

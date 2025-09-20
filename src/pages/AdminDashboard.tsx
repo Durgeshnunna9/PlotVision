@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import StatCard from '@/components/dashboard/StatCard';
 import PropertyCard from '@/components/dashboard/PropertyCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Users, UserCheck, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { Building2, Users, UserCheck, IndianRupee, TrendingUp, TrendingDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const AdminDashboard = () => {
@@ -170,7 +170,7 @@ const AdminDashboard = () => {
         <StatCard
           title="Monthly Revenue"
           value={`${(analytics.monthlyRevenue / 1000000).toFixed(1)}`}
-          icon={DollarSign}
+          icon={IndianRupee}
           trend={{
             value: Number(analytics.trends?.revenue?.toFixed(1) || 0),
             isPositive: (analytics.trends?.revenue || 0) >= 0,
