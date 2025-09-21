@@ -8,7 +8,7 @@ interface PropertyCardProps {
 }
 
 const PropertyCard = ({ property }: PropertyCardProps) => {
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: string) => {
     switch (status) {
       case 'available':
         return 'bg-success text-success-foreground';
@@ -26,42 +26,54 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
   return (
     <Card className="property-card group">
       <div className="relative h-48 overflow-hidden">
-        <img 
-          src={property.images[0] || 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400'} 
-          alt={property.title}
-          className="property-image w-full h-full object-cover group-hover:scale-110"
-        />
+        {property.images && property.images.length > 0 ? (
+          <img
+            src={property.images[0] || '/placeholder.png'}
+            alt={property.title || "Property image"}
+            className="property-image w-full h-full object-cover group-hover:scale-110"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500">
+            No Image
+          </div>
+        )}
+
         <Badge className={`absolute top-3 right-3 ${getStatusColor(property.status)}`}>
-          {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
+          {property.status
+            ? property.status.charAt(0).toUpperCase() + property.status.slice(1)
+            : "Unknown"}
         </Badge>
       </div>
-      
+
       <CardContent className="p-4">
         <div className="space-y-3">
           <div>
-            <h3 className="font-semibold text-lg text-foreground">{property.title}</h3>
+            <h3 className="font-semibold text-lg text-foreground">
+              {property.title || "Untitled Property"}
+            </h3>
             <div className="flex items-center gap-1 text-muted-foreground text-sm">
               <MapPin className="h-4 w-4" />
-              <span>{property.address}</span>
+              <span>{property.address || "Address not available"}</span>
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="text-2xl font-bold text-primary">
-              ${property.price.toLocaleString()}
+              {(property.price ?? 0).toLocaleString()}
             </div>
+
             <div className="flex items-center gap-4 text-muted-foreground text-sm">
               <div className="flex items-center gap-1">
                 <Bed className="h-4 w-4" />
-                <span>{property.bedrooms}</span>
+                <span>{property.bedrooms ?? 0}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Bath className="h-4 w-4" />
-                <span>{property.bathrooms}</span>
+                <span>{property.bathrooms ?? 0}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Square className="h-4 w-4" />
-                <span>{property.sqft.toLocaleString()}</span>
+                <span>{(property.sqft ?? 0).toLocaleString()}</span>
               </div>
             </div>
           </div>

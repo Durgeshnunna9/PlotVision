@@ -134,57 +134,66 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
   //   }
   // };
 
-  const handleImageChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    field: "parking_photos" | "property_photos"
-  ) => {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      setFormData((prev) => ({
-        ...prev,
-        [field]: filesArray,
-      }));
-    }
-  };
+  // Image change handler (append new files instead of overwriting)
+const handleImageChange = (
+  e: React.ChangeEvent<HTMLInputElement>,
+  field: "parking_photos" | "property_photos"
+) => {
+  if (e.target.files) {
+    const filesArray = Array.from(e.target.files);
+    setFormData((prev) => ({
+      ...prev,
+      [field]: [...(prev[field] || []), ...filesArray],
+    }));
+  }
+};
 
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      setFormData((prev) => ({
-        ...prev,
-        video: filesArray,
-      }));
-    }
-  };
+// Video change handler (append new files instead of overwriting)
+const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files) {
+    const filesArray = Array.from(e.target.files);
+    setFormData((prev) => ({
+      ...prev,
+      video: [...(prev.video || []), ...filesArray],
+    }));
+  }
+};
 
-  const uploadFiles = async (files: File[], folder: string): Promise<string[]> => {
-    const urls: string[] = [];
-  
-    for (const file of files) {
-      const filePath = `${folder}/${Date.now()}-${file.name}`;
-  
-      const { data, error } = await supabase.storage
-        .from("property-images") // bucket name
-        .upload(filePath, file);
-  
-      if (error) throw error;
-  
-      const { data: urlData } = supabase.storage
-        .from("property-images")
-        .getPublicUrl(filePath);
-  
-      urls.push(urlData.publicUrl);
-    }
-  
+// Upload files to Supabase Storage and return their public URLs
+const uploadFiles = async (files: File[], folder: string): Promise<string[]> => {
+  try {
+    const urls = await Promise.all(
+      files.map(async (file) => {
+        const filePath = `${folder}/${Date.now()}-${file.name}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("property-images") // bucket name
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        // getPublicUrl is synchronous (no await needed)
+        const { data: urlData } = supabase.storage
+          .from("property-images")
+          .getPublicUrl(filePath);
+
+        return urlData.publicUrl;
+      })
+    );
+
     return urls;
-  };
+  } catch (err) {
+    console.error("Error uploading files:", err);
+    throw err; // let caller handle error
+  }
+};
 
   // ---- Handle change ----
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target as HTMLInputElement;
-
+  
     // fields that should be numbers
     const numericFields = new Set([
       "footfall_per_hour",
@@ -200,9 +209,9 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
       "building_age",
       "rental_value",
     ]);
-
+  
     let nextValue: any = value;
-
+  
     if (numericFields.has(name)) {
       // allow empty while editing; otherwise coerce to number
       nextValue = value === "" ? "" : Number(value);
@@ -210,58 +219,69 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
       // if you ever add checkboxes, map to "yes"/"no"
       nextValue = (e.target as HTMLInputElement).checked ? "yes" : "no";
     }
-
+  
     setFormData((prev) => {
       let updated = { ...prev, [name]: nextValue };
+  
+      // Auto-calc store size and model
       if (name === "store_length" || name === "store_width") {
         updated.store_size = (updated.store_length || 0) * (updated.store_width || 0);
-
-      if (updated.store_size <= 50) {
-        updated.store_model = "Nano Model";
-      } else if (updated.store_size <= 200 && updated.store_size > 50 && updated.property_type === "open_plot") {
-        updated.store_model = "Nano Mobile Model";
-      } else if (updated.store_size > 200 && updated.store_size <= 350) {
-        updated.store_model = "Express A Model";
-      } else if (updated.store_size > 350 && updated.store_size <= 500) {
-        updated.store_model = "Express B Model";
-      } else if (updated.store_size > 500 && updated.store_size <= 750) {
-        updated.store_model = "Plus A Model";
-      } else if (updated.store_size > 750 && updated.store_size <= 1000) {
-        updated.store_model = "Plus B Model";
-      } else if (updated.store_size > 1000 && updated.store_size <= 1500) {
-        updated.store_model = "May A Model";
-      } else if (updated.store_size > 1500 && updated.store_size <= 2000) {
-        updated.store_model = "May B Model";
-      } else {
-        updated.store_model = `Open Plot`; // fallback dynamic value
+  
+        if (updated.store_size <= 50) {
+          updated.store_model = "Nano Model";
+        } else if (
+          updated.store_size <= 200 &&
+          updated.store_size > 50 &&
+          updated.property_type === "open_plot"
+        ) {
+          updated.store_model = "Nano Mobile Model";
+        } else if (updated.store_size > 200 && updated.store_size <= 350) {
+          updated.store_model = "Express A Model";
+        } else if (updated.store_size > 350 && updated.store_size <= 500) {
+          updated.store_model = "Express B Model";
+        } else if (updated.store_size > 500 && updated.store_size <= 750) {
+          updated.store_model = "Plus A Model";
+        } else if (updated.store_size > 750 && updated.store_size <= 1000) {
+          updated.store_model = "Plus B Model";
+        } else if (updated.store_size > 1000 && updated.store_size <= 1500) {
+          updated.store_model = "May A Model";
+        } else if (updated.store_size > 1500 && updated.store_size <= 2000) {
+          updated.store_model = "May B Model";
+        } else {
+          updated.store_model = "Open Plot"; // fallback dynamic value
+        }
       }
-    }
+  
       return updated;
     });
   };
-
+  
   // ---- Handle submit ----
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+  
     try {
       console.log("Submitting data:", formData);
+  
       // Upload files if any
       const propertyPhotosUrls = formData.property_photos.length
-      ? await uploadFiles(formData.property_photos, "property_photos")
-      : [];
+        ? await uploadFiles(formData.property_photos, "property_photos")
+        : [];
       const parkingPhotosUrls = formData.parking_photos.length
         ? await uploadFiles(formData.parking_photos, "parking_photos")
         : [];
       const videoUrls = formData.video.length
         ? await uploadFiles(formData.video, "videos")
         : [];
+  
       const { user_id, ...dataToSubmit } = formData;
+  
       // Convert string values to appropriate types for database
       const payload = {
         ...dataToSubmit,
         user_id: user?.id,
-        // Convert string "yes"/"no" fields to boolean
+        // Convert "yes"/"no" fields to boolean
         corner_peice: dataToSubmit.corner_peice === "yes",
         road_facing: dataToSubmit.road_facing === "yes",
         parking_availability: dataToSubmit.parking_availability === "yes",
@@ -277,68 +297,64 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
         facilities: facilities.length ? facilities : null,
         advantages: advantages.length ? advantages : null,
       };
-      
+  
       // Insert into Supabase
-      const { data, error } = await supabase
-        .from("properties")
-        .insert([payload]);
-
+      const { data, error } = await supabase.from("properties").insert([payload]);
       if (error) throw error;
-
+  
       console.log("Inserted:", data);
-
+  
       // ✅ if everything works
       onSuccess?.();
-
-       // Reset form after successful submit
+  
+      // Reset form after successful submit
       setFormData({
         user_id: "",
-        location: "" ,
-        distance: "" ,
+        location: "",
+        distance: "",
         footfall_per_hour: 0,
-        snack_spend: 0 ,
+        snack_spend: 0,
         property_type: "",
-        store_model: "" ,
-        store_size: 0 ,
-        store_length:  0 ,
-        store_width:  0 ,
-        road_facing: "" ,
-        entry_direction: "" ,
-        corner_peice: "" ,
-        corner_side: "" ,
-        store_position:"" ,
-        shutter_length: 0 ,
-        shutter_width: 0 ,
-        front_offset: 0 ,
-        setback: "" ,
+        store_model: "",
+        store_size: 0,
+        store_length: 0,
+        store_width: 0,
+        road_facing: "",
+        entry_direction: "",
+        corner_peice: "",
+        corner_side: "",
+        store_position: "",
+        shutter_length: 0,
+        shutter_width: 0,
+        front_offset: 0,
+        setback: "",
         floor: "",
         parking_availability: "",
         parking_capacity_2w: 0,
         parking_capacity_4w: 0,
-        washroom: "" ,
-        electricity: "" ,
-        generator: "" ,
-        building_age: "" ,
-        water: "" ,
-        building_condition: "" ,
-        landmark: "" ,
+        washroom: "",
+        electricity: "",
+        generator: "",
+        building_age: "",
+        water: "",
+        building_condition: "",
+        landmark: "",
         owner_contacted: "",
         rental_value: 0,
         about_property: "",
         facilities: [],
         advantages: [],
-        parking_photos: [],
-        property_photos: [],
-        video: [],
+        parking_photos: [] as File[],
+        property_photos: [] as File[],
+        video: [] as File[],
       });
     } catch (err) {
       console.error("Error submitting property:", err);
-      setLoading(false);
-    }
-    finally{
+    } finally {
       setLoading(false);
     }
   };
+  
 
   // ----Facilities Option------
   const toggleOptionFacilities = (facilities_option) => {
@@ -838,45 +854,61 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
       <div className="my-6 h-2 w-full bg-gray-100 "></div>{/* Data Diving bar */}
       
       <div className="p-1">
-        <h2 className="block font-bold pl-2 mb-3 text-xl"> Media Details</h2>
-        <div className={`grid ${formData.parking_availability === "yes" ? "grid-cols-3" : "grid-cols-2"}`}>
-          {/* Property Photos */}
+        <h2 className="block font-bold pl-2 mb-3 text-xl">Media Details</h2>
+
+        {/* <div
+          className={`grid gap-4 ${
+            formData.parking_availability === "yes" ? "grid-cols-3" : "grid-cols-2"
+          }`}
+        >
+          Property Photos
           <div>
-            <label className="block pl-2 font-medium">Property Photos</label>
+            <label htmlFor="property_photos" className="block pl-2 font-medium">
+              Property Photos
+            </label>
             <input
+              id="property_photos"
               type="file"
               accept="image/*"
               multiple
-              className="pl-2 p-2 w-full"
+              className="w-full p-2 rounded-md border"
               onChange={(e) => handleImageChange(e, "property_photos")}
             />
-          </div>
+          </div> */}
+
           {/* Parking Photos */}
-          {formData.parking_availability === "yes" && (
+          {/* {formData.parking_availability === "yes" && (
             <div>
-              <label className="block pl-2 font-medium">Parking Pictures </label>
+              <label htmlFor="parking_photos" className="block pl-2 font-medium">
+                Parking Pictures
+              </label>
               <input
+                id="parking_photos"
                 type="file"
                 accept="image/*"
                 multiple
-                className="p-2 w-full"
+                className="w-full p-2 rounded-md border"
                 onChange={(e) => handleImageChange(e, "parking_photos")}
               />
             </div>
-          )}
-          {/*Video Upload*/}
-          <div>
-            <label className="block pl-2 font-medium">Video</label>
+          )} */}
+
+          {/* Video Upload */}
+          {/* <div>
+            <label htmlFor="video_upload" className="block pl-2 font-medium">
+              Video
+            </label>
             <input
+              id="video_upload"
               type="file"
               accept="video/*"
-              multiple
+              className="w-full p-2 rounded-md border"
               onChange={handleVideoChange}
-              className="w-full p-2 pl-2 rounded-sm"
             />
-          </div>
-        </div>
+          </div> */}
+        {/* </div> */}
       </div>
+
 
       <div className="my-6 h-2 w-full bg-gray-100 "></div>{/* Data Diving bar */}
 

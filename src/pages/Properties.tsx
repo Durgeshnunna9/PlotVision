@@ -338,7 +338,7 @@ const Properties = () => {
                         </div>
 
                         {/* Media (photos/videos in a collage style) */}
-                        <div className="mt-4">
+                        {/* <div className="mt-4">
                           <b>Parking Photos:</b>
                           <div className="grid grid-cols-3 gap-2 mt-2">
                             {selectedProperty.parking_photos?.map((file: File, i: number) => (
@@ -378,7 +378,7 @@ const Properties = () => {
                               />
                             ))}
                           </div>
-                        </div>
+                        </div> */}
                     </Modal>
                   )}
                   {(user?.role === 'admin' || (user?.role === 'agent' && property.agentId === user.id)) && (
