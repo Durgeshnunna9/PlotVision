@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import ClientsModal from '@/components/dashboard/ClientsModal';
+import ClientsModal from "@/components/dashboard/ClientsModal";
 import {
   UserCheck,
   Plus,
@@ -22,11 +22,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 
-interface ClientsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  clients: { id: string; name: string; email: string; phone: string }[];
-}
+type AgentRole = "admin" | "agent" | "manager" | string;
 
 type Agent = {
   id: string;
@@ -34,7 +30,7 @@ type Agent = {
   phone?: string;
   email?: string;
   avatar_url?: string;
-  role: "admin" | "agent" | "manager" | string;
+  role: AgentRole;
   specialization?: string;
   totalSales?: number;
   activeListings?: number;
@@ -42,87 +38,101 @@ type Agent = {
   rating?: number;
 };
 
+type Client = {
+  id: string;
+  full_name: string;
+  email?: string;
+  phone?: string;
+  agent_id: string;
+};
+
 const Agents = () => {
   const { user } = useAuth();
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [clients, setClients] = useState<any[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchClients = async () => {
-      const { data } = await supabase.from('clients').select('*');
-      setClients(data || []);
-    };
-    fetchClients();
-  }, []);
+  // Fetch all agents
+  const fetchAgents = async () => {
+    setIsLoading(true);
+    try {
+      let query = supabase.from("profiles").select("*").eq("role", "agent");
 
-  // Fetch agents from Supabase
+      if (searchTerm) {
+        query = query.or(
+          `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`
+        );
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("Error fetching agents:", error.message);
+        setAgents([]);
+      } else {
+        setAgents(data || []);
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching agents:", err);
+      setAgents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch clients for a specific agent
+  const fetchClients = async (agentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("agent_id", agentId);
+        console.log("Agents data:", data, "Error:", error);
+
+      if (error) {
+        console.error("Error fetching clients:", error.message);
+        setClients([]);
+      } else {
+        setClients(data || []);
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching clients:", err);
+      setClients([]);
+    }
+  };
+
+  // Fetch agents on mount and on search term change
   useEffect(() => {
     if (!user) return;
 
-    let mounted = true;
-
-    const fetchAgents = async () => {
-      setIsLoading(true);
-
-      try {
-        let query = supabase.from("profiles").select("*").eq("role", "agent");
-
-        if (searchTerm) {
-          query = query.or(
-            `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`
-          );
-        }
-
-        const { data, error } = await query;
-
-        if (!mounted) return;
-
-        if (error) {
-          console.error("Error fetching agents:", error.message);
-          setAgents([]);
-        } else {
-          setAgents(data || []);
-        }
-      } catch (err) {
-        if (mounted) setAgents([]);
-        console.error("Unexpected error fetching agents:", err);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
     fetchAgents();
 
-    // Set up real-time subscription
+    // Setup real-time subscription
     const channel = supabase
-      .channel('agents-changes')
+      .channel("agents-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'profiles',
-          filter: 'role=eq.agent'
+          event: "*",
+          schema: "public",
+          table: "profiles",
+          filter: "role=eq.agent",
         },
-        (payload) => {
-          console.log('Agents change received:', payload);
-          if (mounted) {
-            fetchAgents(); // Refetch data on any change
-          }
+        () => {
+          fetchAgents(); // refetch on any change
         }
       )
       .subscribe();
-    
+
     return () => {
-      mounted = false;
       supabase.removeChannel(channel);
     };
   }, [user, searchTerm]);
 
-  //Aggregate stats
+  // Aggregate stats
   const totalSales = agents.reduce((sum, agent) => sum + (agent.totalSales || 0), 0);
   const avgRating =
     agents.length > 0
@@ -163,51 +173,46 @@ const Agents = () => {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Agents</p>
-                <p className="text-2xl font-bold">{agents.length}</p>
-              </div>
-              <UserCheck className="h-8 w-8 text-primary" />
+          <CardContent className="p-4 flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Agents</p>
+              <p className="text-2xl font-bold">{agents.length}</p>
             </div>
+            <UserCheck className="h-8 w-8 text-primary" />
           </CardContent>
         </Card>
+
         <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Sales</p>
-                <p className="text-2xl font-bold text-success">
-                  ₹{(totalSales / 1000000).toFixed(1)}K
-                </p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-success" />
+          <CardContent className="p-4 flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Sales</p>
+              <p className="text-2xl font-bold text-success">
+                ₹{(totalSales / 1000000).toFixed(1)}K
+              </p>
             </div>
+            <TrendingUp className="h-8 w-8 text-success" />
           </CardContent>
         </Card>
+
         <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Listings</p>
-                <p className="text-2xl font-bold text-accent">
-                  {agents.reduce((sum, agent) => sum + (agent.activeListings || 0), 0)}
-                </p>
-              </div>
-              <Building className="h-8 w-8 text-accent" />
+          <CardContent className="p-4 flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Active Listings</p>
+              <p className="text-2xl font-bold text-accent">
+                {agents.reduce((sum, agent) => sum + (agent.activeListings || 0), 0)}
+              </p>
             </div>
+            <Building className="h-8 w-8 text-accent" />
           </CardContent>
         </Card>
+
         <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Rating</p>
-                <p className="text-2xl font-bold text-warning">{avgRating.toFixed(1)}</p>
-              </div>
-              <Star className="h-8 w-8 text-warning" />
+          <CardContent className="p-4 flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Avg Rating</p>
+              <p className="text-2xl font-bold text-warning">{avgRating.toFixed(1)}</p>
             </div>
+            <Star className="h-8 w-8 text-warning" />
           </CardContent>
         </Card>
       </div>
@@ -239,31 +244,28 @@ const Agents = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {agents.map((agent) => (
           <Card key={agent.id} className="card-premium">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-lg">
-                    {agent.full_name?.split(" ").map((n) => n[0]).join("")}
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{agent.full_name}</CardTitle>
-                    <p className="text-sm text-muted-foreground capitalize">
-                      {agent.role}
-                    </p>
-                  </div>
+            <CardHeader className="pb-3 flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-lg">
+                  {agent.full_name?.split(" ").map((n) => n[0]).join("")}
                 </div>
-                <div className="flex gap-1">
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  {user?.role === "admin" && (
-                    <Button variant="outline" size="sm">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                <div>
+                  <CardTitle className="text-lg">{agent.full_name}</CardTitle>
+                  <p className="text-sm text-muted-foreground capitalize">{agent.role}</p>
                 </div>
               </div>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4" />
+                </Button>
+                {user?.role === "admin" && (
+                  <Button variant="outline" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </CardHeader>
+
             <CardContent>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -298,20 +300,15 @@ const Agents = () => {
                     <div className="text-xs text-muted-foreground">Listings</div>
                   </div>
                   <div className="p-2 rounded-lg bg-muted/30">
-                    <div className="text-lg font-bold text-success">
-                      {agent.clientsCount ?? 0}
-                    </div>
+                    <div className="text-lg font-bold text-success">{agent.clientsCount ?? 0}</div>
                     <div className="text-xs text-muted-foreground">Clients</div>
                   </div>
                   <div className="p-2 rounded-lg bg-muted/30">
-                    <div className="text-lg font-bold text-warning">
-                      {agent.rating ?? 0}
-                    </div>
+                    <div className="text-lg font-bold text-warning">{agent.rating ?? 0}</div>
                     <div className="text-xs text-muted-foreground">Rating</div>
                   </div>
                 </div>
 
-                {/* Rating stars */}
                 <div className="flex items-center justify-center gap-1 text-sm">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
@@ -323,25 +320,28 @@ const Agents = () => {
                       }`}
                     />
                   ))}
-                  <span className="ml-2 text-muted-foreground">
-                    ({agent.rating ?? 0})
-                  </span>
+                  <span className="ml-2 text-muted-foreground">({agent.rating ?? 0})</span>
                 </div>
 
                 <div className="flex gap-2">
-                  {/* <Button variant="outline" size="sm" className="flex-1">
-                    <Mail className="h-4 w-4 mr-1" />
-                    Contact
-                  </Button> */}
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowModal(true)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={async () => {
+                      setSelectedAgentId(agent.id);
+                      await fetchClients(agent.id);
+                      setShowModal(true);
+                    }}
+                  >
                     <Users className="h-4 w-4 mr-1" />
                     Clients
                   </Button>
-                  <ClientsModal
+                  {/* <ClientsModal
                     isOpen={showModal}
                     onClose={() => setShowModal(false)}
-                    clients={clients}
-                  />
+                    // clients={clients}
+                  /> */}
                 </div>
               </div>
             </CardContent>
@@ -355,9 +355,7 @@ const Agents = () => {
           <CardContent className="text-center py-12">
             <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No agents found</h3>
-            <p className="text-muted-foreground">
-              Try adjusting your search criteria
-            </p>
+            <p className="text-muted-foreground">Try adjusting your search criteria</p>
           </CardContent>
         </Card>
       )}

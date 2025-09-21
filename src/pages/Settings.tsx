@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +7,18 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Settings as SettingsIcon, User, Bell, Shield, Database, Mail, Globe } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { toast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const Settings = () => {
+  const [openModal, setOpenModal] = useState<null | "privacy" | "terms" | "support">(null);
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -16,24 +26,159 @@ const Settings = () => {
     marketing: false,
   });
 
-  const [profile, setProfile] = useState({
-    companyName: 'RealtyPro Inc.',
-    companyEmail: 'admin@realtypro.com',
-    companyPhone: '(555) 123-4567',
-    address: '123 Business Ave, Suite 100',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10001',
-    website: 'www.realtypro.com',
+  const [companyProfile, setCompanyProfile] = useState({
+    companyName: "",
+    companyEmail: "",
+    companyPhone: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    website: "",
   });
 
   const [system, setSystem] = useState({
-    timezone: 'America/New_York',
-    dateFormat: 'MM/DD/YYYY',
-    currency: 'USD',
-    language: 'en',
-    theme: 'system',
+    timezone: "",
+    dateFormat: "",
+    currency: "",
+    language: "",
+    theme: "",
   });
+  const handleSaveCompanyProfile = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not logged in");
+  
+      const { error } = await supabase.from("company_profile").upsert(
+        {
+          user_id: user.id,
+          company_name: companyProfile.companyName,
+          company_email: companyProfile.companyEmail,
+          company_phone: companyProfile.companyPhone,
+          address: companyProfile.address,
+          city: companyProfile.city,
+          state: companyProfile.state,
+          zip_code: companyProfile.zipCode,
+          website: companyProfile.website,
+        },
+        { onConflict: "user_id" }
+      );
+  
+      if (error) throw error;
+  
+      toast({ title: "Success", description: "Company profile saved" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+  const handleSaveNotifications = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not logged in");
+  
+      const { error } = await supabase.from("notification_settings").upsert(
+        {
+          user_id: user.id,
+          email: notifications.email,
+          push: notifications.push,
+          sms: notifications.sms,
+          marketing: notifications.marketing,
+        },
+        { onConflict: "user_id" }
+      );
+  
+      if (error) throw error;
+  
+      toast({ title: "Success", description: "Notification settings saved" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+  // const handleSaveSystemSettings = async () => {
+  //   try {
+  //     const {
+  //       data: { user },
+  //     } = await supabase.auth.getUser();
+  //     if (!user) throw new Error("Not logged in");
+  
+  //     const { error } = await supabase.from("system_settings").upsert(
+  //       {
+  //         user_id: user.id,
+  //         timezone: system.timezone,
+  //         date_format: system.dateFormat,
+  //         currency: system.currency,
+  //         language: system.language,
+  //         theme: system.theme,
+  //       },
+  //       { onConflict: "user_id" }
+  //     );
+  
+  //     if (error) throw error;
+  
+  //     toast({ title: "Success", description: "System settings saved" });
+  //   } catch (error: any) {
+  //     toast({ title: "Error", description: error.message, variant: "destructive" });
+  //   }
+  // };
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: notifData, error: notifError } = await supabase
+        .from("notification_settings")
+        .select("*")
+        .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!notifError && notifData) {
+        setNotifications({
+          email: notifData.email,
+          push: notifData.push,
+          sms: notifData.sms,
+          marketing: notifData.marketing,
+        });
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("company_profile")
+        .select("*")
+        .eq("id", (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!profileError && profileData) {
+        setCompanyProfile({
+          companyName: profileData.company_name,
+          companyEmail: profileData.company_email,
+          companyPhone: profileData.company_phone,
+          address: profileData.address,
+          city: profileData.city,
+          state: profileData.state,
+          zipCode: profileData.zip_code,
+          website: profileData.website,
+        });
+      }
+
+      const { data: sysData, error: sysError } = await supabase
+        .from("system_settings")
+        .select("*")
+        .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!sysError && sysData) {
+        setSystem({
+          timezone: sysData.timezone,
+          dateFormat: sysData.date_format,
+          currency: sysData.currency,
+          language: sysData.language,
+          theme: sysData.theme,
+        });
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="p-6 space-y-6 fade-in">
@@ -59,9 +204,9 @@ const Settings = () => {
               <Label htmlFor="companyName">Company Name</Label>
               <Input
                 id="companyName"
-                value={profile.companyName}
+                value={companyProfile.companyName}
                 onChange={(e) =>
-                  setProfile({ ...profile, companyName: e.target.value })
+                  setCompanyProfile({ ...companyProfile, companyName: e.target.value })
                 }
               />
             </div>
@@ -70,9 +215,9 @@ const Settings = () => {
               <Input
                 id="companyEmail"
                 type="email"
-                value={profile.companyEmail}
+                value={companyProfile.companyEmail}
                 onChange={(e) =>
-                  setProfile({ ...profile, companyEmail: e.target.value })
+                  setCompanyProfile({ ...companyProfile, companyEmail: e.target.value })
                 }
               />
             </div>
@@ -80,9 +225,9 @@ const Settings = () => {
               <Label htmlFor="companyPhone">Phone Number</Label>
               <Input
                 id="companyPhone"
-                value={profile.companyPhone}
+                value={companyProfile.companyPhone}
                 onChange={(e) =>
-                  setProfile({ ...profile, companyPhone: e.target.value })
+                  setCompanyProfile({ ...companyProfile, companyPhone: e.target.value })
                 }
               />
             </div>
@@ -90,9 +235,9 @@ const Settings = () => {
               <Label htmlFor="website">Website</Label>
               <Input
                 id="website"
-                value={profile.website}
+                value={companyProfile.website}
                 onChange={(e) =>
-                  setProfile({ ...profile, website: e.target.value })
+                  setCompanyProfile({ ...companyProfile, website: e.target.value })
                 }
               />
             </div>
@@ -102,9 +247,9 @@ const Settings = () => {
             <Label htmlFor="address">Address</Label>
             <Input
               id="address"
-              value={profile.address}
+              value={companyProfile.address}
               onChange={(e) =>
-                setProfile({ ...profile, address: e.target.value })
+                setCompanyProfile({ ...companyProfile, address: e.target.value })
               }
             />
           </div>
@@ -114,17 +259,17 @@ const Settings = () => {
               <Label htmlFor="city">City</Label>
               <Input
                 id="city"
-                value={profile.city}
-                onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                value={companyProfile.city}
+                onChange={(e) => setCompanyProfile({ ...companyProfile, city: e.target.value })}
               />
             </div>
             <div>
               <Label htmlFor="state">State</Label>
               <Input
                 id="state"
-                value={profile.state}
+                value={companyProfile.state}
                 onChange={(e) =>
-                  setProfile({ ...profile, state: e.target.value })
+                  setCompanyProfile({ ...companyProfile, state: e.target.value })
                 }
               />
             </div>
@@ -132,20 +277,20 @@ const Settings = () => {
               <Label htmlFor="zipCode">ZIP Code</Label>
               <Input
                 id="zipCode"
-                value={profile.zipCode}
+                value={companyProfile.zipCode}
                 onChange={(e) =>
-                  setProfile({ ...profile, zipCode: e.target.value })
+                  setCompanyProfile({ ...companyProfile, zipCode: e.target.value })
                 }
               />
             </div>
           </div>
 
-          <Button className="btn-primary">Save Profile</Button>
+          <Button className="btn-primary" onClick={handleSaveCompanyProfile}>Save Profile</Button>
         </CardContent>
       </Card>
 
       {/* System Settings */}
-      <Card className="card-premium">
+      {/* <Card className="card-premium">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <SettingsIcon className="h-5 w-5" />
@@ -242,9 +387,9 @@ const Settings = () => {
             </div>
           </div>
 
-          <Button className="btn-primary">Save Preferences</Button>
+          <Button className="btn-primary" onClick={handleSaveNotifications}>Save Preferences</Button>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Notification Settings */}
       <Card className="card-premium">
@@ -293,12 +438,12 @@ const Settings = () => {
               </div>
             </div>
           ))}
-          <Button className="btn-primary">Save Notification Settings</Button>
+          <Button className="btn-primary" onClick={handleSaveNotifications}>Save Notification Settings</Button>
         </CardContent>
       </Card>
 
       {/* Security Settings */}
-      <Card className="card-premium">
+      {/* <Card className="card-premium">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -347,10 +492,10 @@ const Settings = () => {
 
           <Button className="btn-primary">Update Security Settings</Button>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Data Management */}
-      <Card className="card-premium">
+      {/* <Card className="card-premium">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
@@ -386,24 +531,68 @@ const Settings = () => {
             </p>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Footer */}
       <Card className="card-premium">
         <CardContent className="p-6 text-center">
           <p className="text-sm text-muted-foreground">
-            RealtyPro v2.1.0 • Last updated: January 2024
+            RealtyPro v1.1.0 • Last updated: October 2025
           </p>
           <div className="flex justify-center gap-4 mt-4">
-            <Button variant="ghost" size="sm">
+            {/* Privacy Policy */}
+            <Button variant="ghost" size="sm" onClick={() => setOpenModal("privacy")}>
               Privacy Policy
             </Button>
-            <Button variant="ghost" size="sm">
+            <Dialog open={openModal === "privacy"} onOpenChange={() => setOpenModal(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Privacy Policy</DialogTitle>
+                  <DialogDescription>
+                    This is a sample Privacy Policy. Your data will be stored securely and only used for service improvements.
+                  </DialogDescription>
+                </DialogHeader>
+                <p className="text-sm mt-2">
+                  Example: We do not sell or share your personal data with third parties without your consent.
+                </p>
+              </DialogContent>
+            </Dialog>
+
+            {/* Terms of Service */}
+            <Button variant="ghost" size="sm" onClick={() => setOpenModal("terms")}>
               Terms of Service
             </Button>
-            <Button variant="ghost" size="sm">
+            <Dialog open={openModal === "terms"} onOpenChange={() => setOpenModal(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Terms of Service</DialogTitle>
+                  <DialogDescription>
+                    These are sample Terms of Service. By using this application, you agree to follow these terms.
+                  </DialogDescription>
+                </DialogHeader>
+                <p className="text-sm mt-2">
+                  Example: Misuse of services or violation of laws may result in account suspension.
+                </p>
+              </DialogContent>
+            </Dialog>
+
+            {/* Support */}
+            <Button variant="ghost" size="sm" onClick={() => setOpenModal("support")}>
               Support
             </Button>
+            <Dialog open={openModal === "support"} onOpenChange={() => setOpenModal(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Support</DialogTitle>
+                  <DialogDescription>
+                    Need help? This is sample support information.
+                  </DialogDescription>
+                </DialogHeader>
+                <p className="text-sm mt-2">
+                  Example: Contact us at <span className="font-medium">support@example.com</span> or call +1 (555) 987-6543.
+                </p>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>

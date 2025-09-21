@@ -14,6 +14,195 @@ export type Database = {
   }
   public: {
     Tables: {
+      agents: {
+        Row: {
+          active_listings: number | null
+          clients_count: number | null
+          id: string
+          manager_id: string | null
+          name: string
+          rating: number | null
+          specialization: string | null
+          total_sales: number | null
+        }
+        Insert: {
+          active_listings?: number | null
+          clients_count?: number | null
+          id?: string
+          manager_id?: string | null
+          name: string
+          rating?: number | null
+          specialization?: string | null
+          total_sales?: number | null
+        }
+        Update: {
+          active_listings?: number | null
+          clients_count?: number | null
+          id?: string
+          manager_id?: string | null
+          name?: string
+          rating?: number | null
+          specialization?: string | null
+          total_sales?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agents_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          agent_id: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          status: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          status?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_profile: {
+        Row: {
+          address: string | null
+          city: string | null
+          company_email: string | null
+          company_name: string
+          company_phone: string | null
+          id: string
+          state: string | null
+          website: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company_email?: string | null
+          company_name: string
+          company_phone?: string | null
+          id?: string
+          state?: string | null
+          website?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company_email?: string | null
+          company_name?: string
+          company_phone?: string | null
+          id?: string
+          state?: string | null
+          website?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
+      deals: {
+        Row: {
+          agent_id: string
+          amount: number
+          commission: number
+          created_at: string | null
+          id: string
+          status: string | null
+        }
+        Insert: {
+          agent_id: string
+          amount: number
+          commission: number
+          created_at?: string | null
+          id?: string
+          status?: string | null
+        }
+        Update: {
+          agent_id?: string
+          amount?: number
+          commission?: number
+          created_at?: string | null
+          id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      managers: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id?: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          email: boolean | null
+          id: string
+          marketing: boolean | null
+          push: boolean | null
+          sms: boolean | null
+        }
+        Insert: {
+          email?: boolean | null
+          id?: string
+          marketing?: boolean | null
+          push?: boolean | null
+          sms?: boolean | null
+        }
+        Update: {
+          email?: boolean | null
+          id?: string
+          marketing?: boolean | null
+          push?: boolean | null
+          sms?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -76,6 +265,7 @@ export type Database = {
           shutter_length: number | null
           shutter_width: number | null
           snack_spend: number | null
+          sold_at: string | null
           store_length: number | null
           store_model: string | null
           store_position: string | null
@@ -117,6 +307,7 @@ export type Database = {
           shutter_length?: number | null
           shutter_width?: number | null
           snack_spend?: number | null
+          sold_at?: string | null
           store_length?: number | null
           store_model?: string | null
           store_position?: string | null
@@ -158,6 +349,7 @@ export type Database = {
           shutter_length?: number | null
           shutter_width?: number | null
           snack_spend?: number | null
+          sold_at?: string | null
           store_length?: number | null
           store_model?: string | null
           store_position?: string | null
@@ -167,6 +359,134 @@ export type Database = {
           video?: Json | null
           washroom?: boolean | null
           water?: string | null
+        }
+        Relationships: []
+      }
+      sales: {
+        Row: {
+          agent_id: string | null
+          amount: number
+          id: string
+          property_id: string | null
+          sale_date: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          amount: number
+          id?: string
+          property_id?: string | null
+          sale_date?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          amount?: number
+          id?: string
+          property_id?: string | null
+          sale_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_settings: {
+        Row: {
+          currency: string | null
+          date_format: string | null
+          id: string
+          language: string | null
+          theme: string | null
+          timezone: string | null
+        }
+        Insert: {
+          currency?: string | null
+          date_format?: string | null
+          id?: string
+          language?: string | null
+          theme?: string | null
+          timezone?: string | null
+        }
+        Update: {
+          currency?: string | null
+          date_format?: string | null
+          id?: string
+          language?: string | null
+          theme?: string | null
+          timezone?: string | null
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          agent_id: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          status: string | null
+          task_name: string | null
+          title: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string | null
+          task_name?: string | null
+          title: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string | null
+          task_name?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string | null
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          name?: string | null
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          role?: string | null
         }
         Relationships: []
       }

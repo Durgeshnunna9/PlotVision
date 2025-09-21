@@ -15,6 +15,7 @@ import Onboarding from "./pages/Onboarding";
 import Performance from "./pages/Performance";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import HeatMap from './pages/HeatMap';
 import NotFound from "./pages/NotFound";
 import Reports from "./pages/Reports";
 // import { Settings } from "lucide-react";
@@ -53,6 +54,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Properties />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/heatmap" 
+              element={
+                <ProtectedRoute>
+                  <HeatMap />
                 </ProtectedRoute>
               } 
             />
@@ -99,14 +108,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            <Route 
+            {/* <Route 
               path="/users" 
               element={
                 <ProtectedRoute roles={['admin']}>
                   <UserManagement />
                 </ProtectedRoute>
               } 
-            />
+            /> */}
             <Route 
               path="/reports" 
               element={

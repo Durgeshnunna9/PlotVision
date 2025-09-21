@@ -5,6 +5,7 @@ import {
   FileText, 
   BarChart3,
   UserCheck,
+  Map,
   ClipboardList,
   TrendingUp,
   Settings
@@ -44,18 +45,24 @@ const sidebarItems: SidebarItem[] = [
     path: '/agents',
     roles: ['admin', 'manager']
   },
-  {
-    icon: Users,
-    label: 'Users',
-    path: '/users',
-    roles: ['admin']
-  },
+  // {
+  //   icon: Users,
+  //   label: 'Users',
+  //   path: '/users',
+  //   roles: ['admin']
+  // },
   // {
   //   icon: ClipboardList,
   //   label: 'Tasks',
   //   path: '/tasks',
   //   roles: ['agent', 'manager']
   // },
+  {
+    icon: Map,
+    label: 'HeatMap',
+    path: '/heatmap',
+    roles: ['admin']
+  },
   {
     icon: BarChart3,
     label: 'Analytics',
