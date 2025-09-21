@@ -413,7 +413,7 @@ const Login = () => {
                 </Button>
               </form>
 
-              <div className="mt-2 text-center">
+              {/* <div className="mt-2 text-center">
                 <button
                   onClick={() => setIsLogin(!isLogin)}
                   className="text-blue-600 hover:text-blue-700 text-md font-medium"
@@ -422,6 +422,31 @@ const Login = () => {
                     ? "Don't have an account? Sign up"
                     : 'Already have an account? Sign in'}
                 </button>
+              </div> */}
+              <div className="mt-8 bg-gray-50 p-6 rounded-lg shadow-inner max-w-md mx-auto">
+                <h2 className="text-2xl font-semibold text-center mb-4 text-gray-800">Sample Login</h2>
+
+                <div className="space-y-4">
+                  {/* Admin */}
+                  <div className="bg-white p-3 rounded border-l-4 border-green-500 shadow-sm">
+                    <h3 className="font-medium text-gray-700">Admin</h3>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Username:</span> green@gmail.com</p>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Password:</span> green12345</p>
+                  </div>
+
+                  {/* Manager */}
+                  <div className="bg-white p-3 rounded border-l-4 border-blue-500 shadow-sm">
+                    <h3 className="font-medium text-gray-700">Manager</h3>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Username:</span> blue@gmail.com</p>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Password:</span> blue12345</p>
+                  </div>
+
+                  {/* Agent */}
+                  <div className="bg-white p-3 rounded border-l-4 border-red-500 shadow-sm">
+                    <h3 className="font-medium text-gray-700">Agent</h3>
+                    <p>Google Sign in </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

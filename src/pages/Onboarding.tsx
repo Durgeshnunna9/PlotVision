@@ -49,12 +49,12 @@ const Onboarding = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Welcome to RealtyPro</CardTitle>
-          <CardDescription>
+          {/* <CardDescription>
             Please select your role to complete your registration
-          </CardDescription>
+          </CardDescription> */}
         </CardHeader>
         <CardContent className="space-y-6">
-          <RadioGroup value={selectedRole} onValueChange={(value) => setSelectedRole(value as 'agent')}>
+          {/* <RadioGroup value={selectedRole} onValueChange={(value) => setSelectedRole(value as 'agent')}>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="agent" id="agent" />
               <Label htmlFor="agent" className="flex-1 cursor-pointer">
@@ -64,14 +64,15 @@ const Onboarding = () => {
                 </div>
               </Label>
             </div>
-          </RadioGroup>
+          </RadioGroup> */}
+          <p className='text-center'> Hope you have a good experience</p>
           
           <Button 
             onClick={handleRoleSelection} 
             className="w-full" 
             disabled={isLoading}
           >
-            {isLoading ? 'Setting up...' : 'Complete Registration'}
+            {isLoading ? 'Thank you...' : 'Enter'}
           </Button>
         </CardContent>
       </Card>

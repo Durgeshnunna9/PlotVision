@@ -197,7 +197,7 @@ const ManagerDashboard = () => {
           <h1 className="text-3xl font-bold text-foreground">Manager Dashboard</h1>
           <p className="text-muted-foreground">Oversee your team's performance and manage operations.</p>
         </div>
-        <Button className="btn-gradient" onClick={() => setOpen(true)}>
+        <Button className="btn-gradient" onClick={() => setOpen(true)} disabled>
           <Plus className="h-4 w-4 mr-2" />
           Assign Task
         </Button>

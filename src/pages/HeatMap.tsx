@@ -55,25 +55,49 @@ const indiaBounds: LatLngExpression[] = [
   [35.67, 97.40],  // NE
 ];
 
+const legendItems = [
+  { color: "red", label: "High Importance" },
+  { color: "orange", label: "Medium Importance" },
+  { color: "green", label: "Normal Importance" },
+  { color: "grey", label: "Neutral / Other" },
+];
+
 const HeatmapAreas = () => {
   return (
-    <MapContainer
-    //   center={[22.9734, 78.6569]}
-    //   zoom={5}
-      style={{ height: "600px", width: "100%" }}
-    //   scrollWheelZoom
-    //   maxBounds={indiaBounds}
-    //   maxBoundsViscosity={1.0}
-    >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      {areas.map((area, idx) => (
-        <Polygon
-          key={idx}
-          positions={area.coordinates}
-          pathOptions={{ color: area.color, fillOpacity: 0.5 }}
-        />
-      ))}
-    </MapContainer>
+    <div>
+      <MapContainer
+        center={[22.9734, 78.6569]}
+        zoom={5}
+        style={{ height: "600px", width: "100%" }}
+        scrollWheelZoom
+        maxBounds={indiaBounds}
+        maxBoundsViscosity={1.0}
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {areas.map((area, idx) => (
+          <Polygon
+            key={idx}
+            positions={area.coordinates}
+            pathOptions={{ color: area.color, fillOpacity: 0.5 }}
+          />
+        ))}
+      </MapContainer>
+       {/* Legend Container */}
+       <div className="bg-white shadow-md rounded-lg p-4 max-w-lg mx-auto mt-6">
+        <h2 className="text-xl font-bold mb-5 text-center">Map Legend</h2>
+        <div className="grid grid-cols-2 gap-4 ">
+          {legendItems.map((item) => (
+            <div key={item.color} className="flex items-center gap-2">
+              <span
+                className="w-6 h-6 rounded-full border"
+                style={{ backgroundColor: item.color }}
+              ></span>
+              <span className="text-sm font-medium">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 };
 

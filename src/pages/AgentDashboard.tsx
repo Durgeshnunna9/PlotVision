@@ -369,7 +369,6 @@ const AgentDashboard = () => {
         </CardContent>
 
         {/* Deals Closed Chart */}
-        image.png
       </Card>
 
       {/* Content Row */}

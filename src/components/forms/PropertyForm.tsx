@@ -362,7 +362,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
       {/*First set of Data */}
       <div>
         <h3 className="block font-bold pl-2 mb-1 text-xl"> Core Location Data </h3>
-        <div>
+        {/* <div>
           <label>User Id</label>
           <input type="string"
               name="user_id"
@@ -373,7 +373,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
               required
               disabled
             />
-        </div>
+        </div> */}
         <div className="p-4 m-1 mt-3 border">
           Maps(Google Maps Pin)
         </div>
