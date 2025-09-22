@@ -19,8 +19,9 @@ const Login = () => {
   const [showTerms, setShowTerms] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);  
   const [role, setRole] = useState<'agent'>('agent'); // Only agents can signup
-  // const [imageUrl, setImageUrl] = useState('');
   const [agreed, setAgreed] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -64,33 +65,37 @@ const Login = () => {
       )}
     </>
   );
-  
 
-  // const uploadProfileImage = async (file: File, userId: string) => {
-  //   try {
-  //     const fileExt = file.name.split('.').pop();
-  //     const fileName = `${userId}-${Date.now()}.${fileExt}`;
-  //     const filePath = `profiles/${fileName}`;
-  
-  //     // Upload file
-  //     const { error: uploadError } = await supabase.storage
-  //       .from('profile-images') // 👈 bucket name
-  //       .upload(filePath, file, { upsert: true });
-  
-  //     if (uploadError) throw uploadError;
-  
-  //     // Get public URL
-  //     const { data } = supabase.storage
-  //       .from('profile-images')
-  //       .getPublicUrl(filePath);
-  
-  //     return data.publicUrl;
-  //   } catch (err) {
-  //     console.error('Error uploading image:', err);
-  //     throw err;
-  //   }
-  // };
-  // Handle Login / Signup
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setProfileImage(e.target.files[0]);
+    }
+  };
+
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!profileImage) return null;
+
+    const fileName = `${Date.now()}_${profileImage.name}`;
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(fileName, profileImage);
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError.message);
+      return null;
+    }
+
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(fileName);
+
+    return urlData.publicUrl;
+  };
 
   const handleGoogleSignIn = async () => {
     try {
@@ -113,53 +118,70 @@ const Login = () => {
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-    
+    setError("");
+  
     try {
       const formData = new FormData(e.currentTarget);
       const email = formData.get("email") as string;
       const password = formData.get("password") as string;
-      const name = formData.get("name") as string;
+      const full_name = formData.get("full_name") as string;
       const phone = formData.get("phone") as string;
-
-      // 1. Signup with redirect URL
-      const redirectUrl = `${window.location.origin}/onboarding`;
-      
+      const avatarFile = formData.get("avatar") as File; // input type='file' name='avatar'
+  
+      // 1️⃣ Signup user in Supabase Auth
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
-        password,
-        options: { 
-          data: { 
-            full_name: name, 
-            phone, 
-            role: 'agent' // Force all new signups to be agents initially
-          },
-          emailRedirectTo: redirectUrl
-        },
+        password
       });
-
-      if (signUpError) {
-        if (signUpError.message.includes('User already registered')) {
-          setError('This email is already registered. Please try logging in instead.');
-          setIsLogin(true);
-        } else {
-          setError(signUpError.message);
-        }
-        return;
+      if (signUpError) throw signUpError;
+      if (!signUpData.user) throw new Error("Signup failed");
+  
+      const userId = signUpData.user.id;
+      let avatar_url: string | null = null;
+  
+      // 2️⃣ Upload avatar image to storage bucket (optional)
+      if (avatarFile) {
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("avatars") // make sure bucket exists
+          .upload(`${userId}/${avatarFile.name}`, avatarFile, {
+            cacheControl: "3600",
+            upsert: true
+          });
+        if (uploadError) throw uploadError;
+  
+        // 3️⃣ Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(`${userId}/${avatarFile.name}`);
+        avatar_url = publicUrlData.publicUrl;
       }
-
-      if (signUpData.user) {
-        // Profile will be created automatically by the database trigger
-        // Navigate to onboarding for role selection
-        navigate("/onboarding");
-      }
+  
+      // 4️⃣ Insert row into profiles table
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert([
+          {
+            id: userId,
+            email,
+            full_name,
+            phone,
+            role: "agent", // default
+            avatar_url
+          }
+        ]);
+      if (profileError) throw profileError;
+  
+      // 5️⃣ Navigate to onboarding
+      navigate("/dasboard");
     } catch (err: any) {
-      console.error("Error in handleSignUp:", err.message);
-      setError(err.message || 'An error occurred during signup');
+      console.error("Signup error:", err);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
+  
+  
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -197,43 +219,6 @@ const Login = () => {
       err
     }
   };
-  // const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-  //   e.preventDefault();
-  //   setIsLoading(true);
-  //   setError('');
-    
-  //   const formData = new FormData(e.currentTarget);
-  //   const email = formData.get("email") as string;
-  //   const password = formData.get("password") as string;
-
-  //   try {
-  //     const { data, error } = await supabase.auth.signInWithPassword({
-  //       email,
-  //       password,
-  //     });
-
-  //     if (error) {
-  //       setError(error.message);
-  //     } else {
-  //       // Check if user needs onboarding (no role set)
-  //       const { data: profile } = await supabase
-  //         .from('profiles')
-  //         .select('role')
-  //         .eq('id', data.user?.id)
-  //         .single();
-          
-  //       if (!profile?.role) {
-  //         navigate('/onboarding');
-  //       } else {
-  //         navigate('/dashboard');
-  //       }
-  //     }
-  //   } catch (err: any) {
-  //     setError(err.message || 'An error occurred during login');
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -282,21 +267,7 @@ const Login = () => {
 
                 {!isLogin && (
                   <>
-                    <div className="space-y-2">
-                      <Label htmlFor="role">Select Role</Label>
-                      <select
-                        id="role"
-                        name="role"
-                        value={role}
-                        onChange={(e) => setRole(e.target.value as 'agent')}
-                        className="w-full border rounded-md px-3 py-2"
-                        required
-                      >
-                        <option value="agent">Real Estate Agent</option>
-                        <option value="admin">Admin</option>
-                        <option value="manager">Manager</option>
-                      </select>
-                    </div>
+                    
                     <div className="space-y-2">
                       <Label htmlFor='name'>Name</Label>
                       <div className='relative'>
@@ -368,13 +339,17 @@ const Login = () => {
 
                 {!isLogin && (
                   <>
-                    {/* <div className="flex flex-col">
-                      <Label className="block font-large mb-2">
-                        Upload your Image
-                      </Label>
-                      
-                      <input type='file'/>
-                    </div> */}
+                    <div className="flex flex-col">
+                      <label className="block font-medium mb-2">Upload your Image</label>
+                      <input type="file" accept="image/*" onChange={handleFileChange} />
+                      {profileImage && (
+                        <img
+                          src={URL.createObjectURL(profileImage)}
+                          alt="Preview"
+                          className="mt-2 w-32 h-32 object-cover rounded-md"
+                        />
+                      )}
+                    </div>
                     
 
                     <div className="flex items-center space-x-2">
@@ -413,7 +388,7 @@ const Login = () => {
                 </Button>
               </form>
 
-              {/* <div className="mt-2 text-center">
+              <div className="mt-2 text-center">
                 <button
                   onClick={() => setIsLogin(!isLogin)}
                   className="text-blue-600 hover:text-blue-700 text-md font-medium"
@@ -422,7 +397,7 @@ const Login = () => {
                     ? "Don't have an account? Sign up"
                     : 'Already have an account? Sign in'}
                 </button>
-              </div> */}
+              </div>
               <div className="mt-8 bg-gray-50 p-6 rounded-lg shadow-inner max-w-md mx-auto">
                 <h2 className="text-2xl font-semibold text-center mb-4 text-gray-800">Sample Login</h2>
 
