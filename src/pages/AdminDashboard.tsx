@@ -208,30 +208,41 @@ const AdminDashboard = () => {
             <CardTitle>Property Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            {analytics.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={analytics}
-                    dataKey="count"
-                    nameKey="type"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label={({ name, value, percent }) =>
-                      `${name}: ${value} (${(percent! * 100).toFixed(0)}%)`
-                    }
-                  >
-                    {analytics.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => `${value}`} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-muted-foreground text-center">No property data available</p>
-            )}
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={analytics.propertyTypes}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="count"
+                  label={({ type, count }) => `${type}: ${count}`}
+                >
+                  {analytics.propertyTypes && analytics.propertyTypes.length > 0 ? (
+                    <PieChart>
+                      <Pie
+                        data={analytics.propertyTypes}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="count"
+                        label={({ type, percentage }) => `${type} ${percentage}%`}
+                      >
+                        {analytics.propertyTypes.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  ) : (
+                    <p className="text-muted-foreground text-center">No data available</p>
+                  )}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
@@ -284,7 +295,7 @@ const AdminDashboard = () => {
                     <p className="text-sm text-muted-foreground">{agent.specialization}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-primary">${agent.total_sales?.toLocaleString()}</p>
+                    <p className="font-semibold text-primary">₹{agent.total_sales?.toLocaleString()}</p>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <span>⭐ {agent.rating}</span>
                     </div>
