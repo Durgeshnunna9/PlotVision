@@ -39,9 +39,9 @@ export interface PropertyFormData {
   about_property: string;
   facilities: string[];
   advantages: string[];
-  parking_photos: File[];
-  property_photos: File[];
-  video: File[];
+  parking_photos: string[];
+  property_photos: string[];
+  video: string[];
 
 }
 
@@ -104,6 +104,10 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
   const [loading, setLoading] = useState(false);
   const [facilities, setFacilities] = useState([]);
   const [advantages, setAdvantages] = useState([]);
+  const [parkingFiles, setParkingFiles] = useState<File[]>([]);
+  const [propertyFiles, setPropertyFiles] = useState<File[]>([]);
+  const [videoFiles, setVideoFiles] = useState<File[]>([]);
+
 
   const facilities_option = [
     "Schools",
@@ -135,27 +139,19 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
   // };
 
   // Image change handler (append new files instead of overwriting)
-const handleImageChange = (
-  e: React.ChangeEvent<HTMLInputElement>,
-  field: "parking_photos" | "property_photos"
-) => {
-  if (e.target.files) {
-    const filesArray = Array.from(e.target.files);
-    setFormData((prev) => ({
-      ...prev,
-      [field]: [...(prev[field] || []), ...filesArray],
-    }));
-  }
-};
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, field: "parking_photos" | "property_photos") => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      if (field === "parking_photos") setParkingFiles(prev => [...prev, ...filesArray]);
+      if (field === "property_photos") setPropertyFiles(prev => [...prev, ...filesArray]);
+    }
+  };
 
 // Video change handler (append new files instead of overwriting)
 const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   if (e.target.files) {
     const filesArray = Array.from(e.target.files);
-    setFormData((prev) => ({
-      ...prev,
-      video: [...(prev.video || []), ...filesArray],
-    }));
+    setVideoFiles(prev => [...prev, ...filesArray]);
   }
 };
 
@@ -265,15 +261,17 @@ const uploadFiles = async (files: File[], folder: string): Promise<string[]> => 
       console.log("Submitting data:", formData);
   
       // Upload files if any
-      const propertyPhotosUrls = formData.property_photos.length
-        ? await uploadFiles(formData.property_photos, "property_photos")
-        : [];
-      const parkingPhotosUrls = formData.parking_photos.length
-        ? await uploadFiles(formData.parking_photos, "parking_photos")
-        : [];
-      const videoUrls = formData.video.length
-        ? await uploadFiles(formData.video, "videos")
-        : [];
+      const propertyPhotosUrls = propertyFiles.length
+      ? await uploadFiles(propertyFiles, "property_photos")
+      : [];
+
+    const parkingPhotosUrls = parkingFiles.length
+      ? await uploadFiles(parkingFiles, "parking_photos")
+      : [];
+
+    const videoUrls = videoFiles.length
+      ? await uploadFiles(videoFiles, "videos")
+      : [];
   
       const { user_id, ...dataToSubmit } = formData;
   
@@ -344,10 +342,15 @@ const uploadFiles = async (files: File[], folder: string): Promise<string[]> => 
         about_property: "",
         facilities: [],
         advantages: [],
-        parking_photos: [] as File[],
-        property_photos: [] as File[],
-        video: [] as File[],
+        parking_photos: [] ,
+        property_photos: [] ,
+        video: [] ,
       });
+      setPropertyFiles([]);
+      setParkingFiles([]);
+      setVideoFiles([]);
+      setFacilities([]);
+      setAdvantages([]);
     } catch (err) {
       console.error("Error submitting property:", err);
     } finally {

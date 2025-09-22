@@ -5,10 +5,30 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Building2, Plus, Search, Edit, Trash2, Eye, MapPin, Bed, Bath, Square, LandPlot } from 'lucide-react';
-// import { mockProperties } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Modal } from '../components/ui/Modal';
 import { supabase } from "@/lib/supabaseClient";
+// Icons
+import PlaceIcon from '@mui/icons-material/Place';
+import MapIcon from '@mui/icons-material/Map';
+import GroupsIcon from '@mui/icons-material/Groups';
+import LocalCafeIcon from '@mui/icons-material/LocalCafe';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import SquareFootIcon from '@mui/icons-material/SquareFoot';
+import StraightenIcon from '@mui/icons-material/Straighten';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import CropSquareIcon from '@mui/icons-material/CropSquare';
+import LayersIcon from '@mui/icons-material/Layers';
+import LocalParkingIcon from '@mui/icons-material/LocalParking';
+import TwoWheelerIcon from '@mui/icons-material/TwoWheeler';
+import WcIcon from '@mui/icons-material/Wc';
+import BoltIcon from '@mui/icons-material/Bolt';
+import PowerIcon from '@mui/icons-material/Power';
+import WaterDropIcon from '@mui/icons-material/WaterDrop';
+import HistoryIcon from '@mui/icons-material/History';
+import HomeRepairServiceIcon from '@mui/icons-material/HomeRepairService'
+
 import {
   Dialog,
   DialogContent,
@@ -18,6 +38,7 @@ import {
 } from "@/components/ui/dialog"
 
 import { PropertyForm, PropertyFormData } from "../components/forms/PropertyForm";
+// import { PropertyForm } from "../components/forms/PropertyForm";
 
 interface Property{
   user_id: string ;
@@ -218,19 +239,19 @@ const Properties = () => {
         {filteredProperties.map((property) => (
           <Card key={property.id} className="property-card group">
             <div className="relative h-48 overflow-hidden">
-              {/* <img 
-                src={property.images[0]} 
-                alt={property.title}
+              <img
+                src={property.property_photos?.[0] ?? "/placeholder.jpg"} // fallback if undefined or empty
+                alt={property.title ?? "Property Image"}                 // fallback alt
                 className="property-image w-full h-full object-cover group-hover:scale-110"
-              /> */}
+              />
               {/* <Badge className={`absolute top-3 right-3 ${getStatusColor(property.status)}`}>
                 {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
-              </Badge>
+              </Badge> */}
               {property.featured && (
                 <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
                   Featured
                 </Badge>
-              )} */}
+              )}
             </div>
             <CardContent className="p-4" >
               <div className="space-y-3">
@@ -280,107 +301,140 @@ const Properties = () => {
                     <Modal
                       isOpen={showViewModal}
                       onClose={() => setShowViewModal(false)}
-                      title={"Property Details"}
-                      size="lg"
-                      
+                      title="Property Details"
+                      size="xl"
                     >
-                      <div className="space-y-2 grid grid-cols-2 gap-4 ">
-                        <p><b>Location:</b> {selectedProperty.location}</p>
-                        <p><b>Distance:</b> {selectedProperty.distance}</p>
-                        <p><b>Footfall per hour:</b> {selectedProperty.footfall_per_hour}</p>
-                        <p><b>Snack Spend:</b> {selectedProperty.snack_spend}</p>
-                        <p><b>Property Type:</b> {selectedProperty.property_type}</p>
-                        <p><b>Store Model:</b> {selectedProperty.store_model}</p>
-                        <p><b>Store Size:</b> {selectedProperty.store_size}</p>
-                        <p><b>Store Length:</b> {selectedProperty.store_length}</p>
-                        <p><b>Store Width:</b> {selectedProperty.store_width}</p>
-                        <p><b>Road Facing:</b> {selectedProperty.road_facing}</p>
-                        <p><b>Entry Direction:</b> {selectedProperty.entry_direction}</p>
-                        <p><b>Corner Piece:</b> {selectedProperty.corner_peice}</p>
-                        <p><b>Corner Side:</b> {selectedProperty.corner_side}</p>
-                        <p><b>Store Position:</b> {selectedProperty.store_position}</p>
-                        <p><b>Shutter Length:</b> {selectedProperty.shutter_length}</p>
-                        <p><b>Shutter Width:</b> {selectedProperty.shutter_width}</p>
-                        <p><b>Front Offset:</b> {selectedProperty.front_offset}</p>
-                        <p><b>Setback:</b> {selectedProperty.setback}</p>
-                        <p><b>Floor:</b> {selectedProperty.floor}</p>
-                        <p><b>Parking Availability:</b> {selectedProperty.parking_availability}</p>
-                        <p><b>2W Parking Capacity:</b> {selectedProperty.parking_capacity_2w}</p>
-                        <p><b>4W Parking Capacity:</b> {selectedProperty.parking_capacity_4w}</p>
-                        <p><b>Washroom:</b> {selectedProperty.washroom}</p>
-                        <p><b>Electricity:</b> {selectedProperty.electricity}</p>
-                        <p><b>Generator:</b> {selectedProperty.generator}</p>
-                        <p><b>Building Age:</b> {selectedProperty.building_age}</p>
-                        <p><b>Water:</b> {selectedProperty.water}</p>
-                        <p><b>Building Condition:</b> {selectedProperty.building_condition}</p>
-                        <p><b>Landmark:</b> {selectedProperty.landmark}</p>
-                        <p><b>Owner Contacted:</b> {selectedProperty.owner_contacted}</p>
-                        <p><b>Rental Value:</b> {selectedProperty.rental_value}</p>
-                        <p><b>About Property:</b> {selectedProperty.about_property}</p>
-                      </div>
-                      {/* Multi-selects */}
-                      <div className='mt-2 mb-2'>
-                          <b>Facilities:</b>
-                          <ul className="list-disc ml-6">
-                            {selectedProperty.facilities?.map((f: string, i: number) => (
-                              <li key={i}>{f}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div>
-                          <b>Advantages:</b>
-                          <ul className="list-disc ml-6">
-                            {selectedProperty.advantages?.map((a: string, i: number) => (
-                              <li key={i}>{a}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Media (photos/videos in a collage style) */}
-                        {/* <div className="mt-4">
-                          <b>Parking Photos:</b>
-                          <div className="grid grid-cols-3 gap-2 mt-2">
-                            {selectedProperty.parking_photos?.map((file: File, i: number) => (
-                              <img
-                                key={i}
-                                src={URL.createObjectURL(file)}
-                                alt={`Parking ${i}`}
-                                className="rounded-md object-cover h-24 w-full"
-                              />
-                            ))}
+                      {/* Location & Distance */}
+                      <section className="mb-6 p-4 bg-white rounded shadow">
+                        <h2 className="text-xl font-semibold mb-4">Location & Distance</h2>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="flex items-center gap-2">
+                            <PlaceIcon className="text-gray-600" />
+                            <span className="font-semibold">Location:</span>
+                            <span>{selectedProperty.location || "-"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapIcon className="text-gray-600" />
+                            <span className="font-semibold">Distance:</span>
+                            <span>{selectedProperty.distance || "-"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <GroupsIcon className="text-gray-600" />
+                            <span className="font-semibold">Footfall/hr:</span>
+                            <span>{selectedProperty.footfall_per_hour || "-"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <LocalCafeIcon className="text-gray-600" />
+                            <span className="font-semibold">Snack Spend:</span>
+                            <span>{selectedProperty.snack_spend || "-"}</span>
                           </div>
                         </div>
+                      </section>
 
-                        <div className="mt-4">
-                          <b>Property Photos:</b>
-                          <div className="grid grid-cols-3 gap-2 mt-2">
-                            {selectedProperty.property_photos?.map((file: File, i: number) => (
-                              <img
-                                key={i}
-                                src={URL.createObjectURL(file)}
-                                alt={`Property ${i}`}
-                                className="rounded-md object-cover h-24 w-full"
-                              />
-                            ))}
-                          </div>
+                      {/* Store Details */}
+                      <section className="mb-6 p-4 bg-white rounded shadow">
+                        <h2 className="text-xl font-semibold mb-4">Store Details</h2>
+                        <div className="grid grid-cols-2 gap-4">
+                          {[
+                            ["Property Type", selectedProperty.property_type, <StorefrontIcon />],
+                            ["Store Model", selectedProperty.store_model, <StorefrontIcon />],
+                            ["Store Size (ft.)", selectedProperty.store_size, <SquareFootIcon />],
+                            ["Store Length (ft.)", selectedProperty.store_length, <StraightenIcon />],
+                            ["Store Width (ft.)", selectedProperty.store_width, <StraightenIcon />],
+                            ["Road Facing", selectedProperty.road_facing, <DirectionsCarIcon />],
+                            ["Entry Direction", selectedProperty.entry_direction, <ExitToAppIcon />],
+                            ["Corner Piece", selectedProperty.corner_peice, <CropSquareIcon />],
+                            ["Corner Side", selectedProperty.corner_side, <CropSquareIcon />],
+                            ["Store Position", selectedProperty.store_position, <PlaceIcon />],
+                            ["Shutter Length (ft.)", selectedProperty.shutter_length, <StraightenIcon />],
+                            ["Shutter Width (ft.)", selectedProperty.shutter_width, <StraightenIcon />],
+                            ["Front Offset (ft.)", selectedProperty.front_offset, <StraightenIcon />],
+                            ["Setback", selectedProperty.setback, <StraightenIcon />],
+                            ["Floor", selectedProperty.floor, <LayersIcon />],
+                          ].map(([label, value, icon], idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              {icon}
+                              <span className="font-semibold">{label}:</span>
+                              <span>{value || "-"}</span>
+                            </div>
+                          ))}
                         </div>
+                      </section>
 
-                        <div className="mt-4">
-                          <b>Videos:</b>
-                          <div className="space-y-2 mt-2">
-                            {selectedProperty.video?.map((file: File, i: number) => (
-                              <video
-                                key={i}
-                                controls
-                                className="rounded-md w-full max-h-48"
-                                src={URL.createObjectURL(file)}
-                              />
-                            ))}
+                      {/* Parking & Utilities */}
+                      <section className="mb-6 p-4 bg-white rounded shadow">
+                        <h2 className="text-xl font-semibold mb-4">Parking & Utilities</h2>
+                        <div className="grid grid-cols-2 gap-4">
+                          {[
+                            ["Parking Available", selectedProperty.parking_availability, <LocalParkingIcon />],
+                            ["2W Capacity", selectedProperty.parking_capacity_2w, <TwoWheelerIcon />],
+                            ["4W Capacity", selectedProperty.parking_capacity_4w, <DirectionsCarIcon />],
+                            ["Washroom", selectedProperty.washroom, <WcIcon />],
+                            ["Electricity", selectedProperty.electricity, <BoltIcon />],
+                            ["Generator", selectedProperty.generator, <PowerIcon />],
+                            ["Water", selectedProperty.water, <WaterDropIcon />],
+                            ["Building Age", selectedProperty.building_age, <HistoryIcon />],
+                            ["Building Condition", selectedProperty.building_condition, <HomeRepairServiceIcon />],
+                          ].map(([label, value, icon], idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              {icon}
+                              <span className="font-semibold">{label}:</span>
+                              <span>{value || "-"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                      {/* ================== Image Galleries ================== */}
+                      {[
+                        { title: "Parking Photos", key: "parking_photos" },
+                        { title: "Property Photos", key: "property_photos" },
+                      ].map(({ title, key }) => (
+                        <section key={key} className="mb-6 p-4 bg-white rounded shadow">
+                          <h2 className="text-xl font-semibold mb-2">{title}</h2>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {selectedProperty[key]?.length > 0 ? (
+                              selectedProperty[key].map((url: string, idx: number) => (
+                                <img
+                                  key={idx}
+                                  src={url}
+                                  alt={`${title} ${idx}`}
+                                  className="rounded-md object-cover w-full h-32 shadow"
+                                />
+                              ))
+                            ) : (
+                              <div className="text-gray-400 italic">No {title.toLowerCase()}</div>
+                            )}
                           </div>
-                        </div> */}
+                        </section>
+                      ))}
+
+                      {/* ================== Videos ================== */}
+                      <section className="mb-6 p-4 bg-white rounded shadow">
+                        <h2 className="text-xl font-semibold mb-2">Videos</h2>
+                        <div className="flex flex-col gap-4">
+                          {selectedProperty.video && selectedProperty.video.length > 0 ? (
+                            selectedProperty.video.map((item: File | string, idx: number) => {
+                              // If it's a File, create a temporary URL
+                              const src = typeof item === "string" ? item : URL.createObjectURL(item);
+
+                              return (
+                                <video
+                                  key={idx}
+                                  controls
+                                  className="rounded-md w-full max-h-64 mx-auto shadow"
+                                  src={src}
+                                />
+                              );
+                            })
+                          ) : (
+                            <div className="text-gray-400 italic">No Videos</div>
+                          )}
+                        </div>
+                      </section>
                     </Modal>
                   )}
+
+
                   {(user?.role === 'admin' || (user?.role === 'agent' && property.agentId === user.id)) && (
                     <>
                       <Button variant="outline" size="sm">
