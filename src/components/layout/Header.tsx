@@ -1,28 +1,13 @@
 import { Home, User, LogOut } from 'lucide-react';
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger,} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 
-const getInitials = (name?: string) => {
-  if (!name) return ''; // return empty string if undefined
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
-};
 
 const Header = () => {
   const { user, logout } = useAuth();
-  const initials = getInitials(user?.name) || 'U'; // safely pass undefined
-  
+  const avatarUrl = user?.avatar_url;
 
   return (
     <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between shadow-sm">
@@ -42,10 +27,14 @@ const Header = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {user ? getInitials(user.name) : 'U'}
-                </AvatarFallback>
+              <Avatar>
+                {user?.avatar_url ? (
+                  <AvatarImage src={user.avatar_url} alt="Profile Picture" />
+                ) : (
+                  <AvatarFallback>
+                    {user?.name?.[0].toUpperCase() ?? "?"}
+                  </AvatarFallback>
+                )}
               </Avatar>
             </Button>
           </DropdownMenuTrigger>

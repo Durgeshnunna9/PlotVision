@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import AdminDashboard from './AdminDashboard';
 import AgentDashboard from './AgentDashboard';
 import ManagerDashboard from './ManagerDashboard';
+import NotFound from './NotFound';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -16,7 +17,7 @@ const Dashboard = () => {
     case 'manager':
       return <ManagerDashboard />;
     default:
-      return <AdminDashboard />;
+      return <NotFound />;
   }
 };
 

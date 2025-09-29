@@ -23,6 +23,7 @@ const Login = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);  
   const [role, setRole] = useState<'agent'>('agent'); // Only agents can signup
   const [agreed, setAgreed] = useState(false);
+  const [message, setMessage] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { login } = useAuth();
@@ -30,11 +31,7 @@ const Login = () => {
   // Redirect to appropriate page if already authenticated
   useEffect(() => {
     if (user) {
-      if (!user.role) {
-        navigate('/onboarding');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/dashboard');
     }
   }, [user, navigate]);
 
@@ -119,68 +116,85 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+    setMessage("");
   
     try {
       const formData = new FormData(e.currentTarget);
-      const email = formData.get("email") as string;
-      const password = formData.get("password") as string;
-      const full_name = formData.get("full_name") as string;
-      const phone = formData.get("phone") as string;
-      const avatarFile = formData.get("avatar") as File; // input type='file' name='avatar'
+  
+      // ✅ Extract form values safely
+      const email = (formData.get("email") as string)?.trim();
+      const password = (formData.get("password") as string)?.trim();
+      const full_name = (formData.get("full_name") as string)?.trim();
+      const phone = (formData.get("phone") as string)?.trim();
+      const avatarFile = formData.get("avatar") as File | null;
+  
+      // ✅ Validate required fields
+      if (!email || !password || !full_name || !phone) {
+        setMessage("Please fill in all required fields.");
+        setIsLoading(false);
+        return;
+      }
   
       // 1️⃣ Signup user in Supabase Auth
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          data: { full_name, phone }, // store metadata safely
+          emailRedirectTo: `${window.location.origin}/`,
+        },
       });
+  
       if (signUpError) throw signUpError;
-      if (!signUpData.user) throw new Error("Signup failed");
+      if (!signUpData.user) throw new Error("Signup failed, no user returned");
   
       const userId = signUpData.user.id;
       let avatar_url: string | null = null;
   
-      // 2️⃣ Upload avatar image to storage bucket (optional)
-      if (avatarFile) {
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("avatars") // make sure bucket exists
-          .upload(`${userId}/${avatarFile.name}`, avatarFile, {
-            cacheControl: "3600",
-            upsert: true
-          });
+      // 2️⃣ Upload avatar if provided
+      if (avatarFile && avatarFile.size > 0) {
+        const fileExt = avatarFile.name.split(".").pop();
+        const fileName = `${userId}-${Date.now()}.${fileExt}`;
+        const filePath = `  ${fileName}`;
+  
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, avatarFile, { cacheControl: "3600", upsert: true });
+  
         if (uploadError) throw uploadError;
   
-        // 3️⃣ Get public URL
         const { data: publicUrlData } = supabase.storage
           .from("avatars")
-          .getPublicUrl(`${userId}/${avatarFile.name}`);
+          .getPublicUrl(filePath);
+  
         avatar_url = publicUrlData.publicUrl;
       }
   
-      // 4️⃣ Insert row into profiles table
+      // 3️⃣ Insert profile row
       const { error: profileError } = await supabase
-        .from("profiles")
-        .insert([
+        .from("profiles") // or 'user_profiles'
+        .upsert([
           {
             id: userId,
-            email,
             full_name,
             phone,
-            role: "agent", // default
-            avatar_url
-          }
+            role: "agent", // default role
+            avatar_url,
+          },
         ]);
+  
       if (profileError) throw profileError;
   
-      // 5️⃣ Navigate to onboarding
-      navigate("/dasboard");
+      setMessage("Signup successful! Check your email for confirmation.");
+      navigate("/dashboard");
     } catch (err: any) {
       console.error("Signup error:", err);
-      setError(err.message);
+      setError(err.message || "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
   };
-  
+   
   
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -267,16 +281,16 @@ const Login = () => {
 
                 {!isLogin && (
                   <>
-                    
+                    {/* Name */}
                     <div className="space-y-2">
-                      <Label htmlFor='name'>Name</Label>
-                      <div className='relative'>
+                      <Label htmlFor="full_name">Full Name</Label>
+                      <div className="relative">
                         <UserRound className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                         <Input
                           type="text"
-                          id="name"
-                          name="name"
-                          placeholder="Name"
+                          id="full_name"
+                          name="full_name"
+                          placeholder="Full Name"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           required
@@ -284,12 +298,15 @@ const Login = () => {
                         />
                       </div>
                     </div>
+
+                    {/* Phone */}
                     <div className="space-y-2">
-                      <label htmlFor='mobile_number'>Mobile Number</label>
-                      <div className='relative'>
+                      <Label htmlFor="phone">Mobile Number</Label>
+                      <div className="relative">
                         <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                         <Input
                           type="tel"
+                          id="phone"
                           name="phone"
                           placeholder="Mobile Number"
                           value={phone}
@@ -300,48 +317,17 @@ const Login = () => {
                         />
                       </div>
                     </div>
-                  </>
-                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {!isLogin && (
-                  <>
+                    {/* Avatar Upload */}
                     <div className="flex flex-col">
-                      <label className="block font-medium mb-2">Upload your Image</label>
-                      <input type="file" accept="image/*" onChange={handleFileChange} />
+                      <Label htmlFor="avatar">Upload your Image</Label>
+                      <input
+                        type="file"
+                        id="avatar"
+                        name="avatar"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                      />
                       {profileImage && (
                         <img
                           src={URL.createObjectURL(profileImage)}
@@ -350,8 +336,8 @@ const Login = () => {
                         />
                       )}
                     </div>
-                    
 
+                    {/* Terms */}
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
@@ -376,17 +362,65 @@ const Login = () => {
                   </>
                 )}
 
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Submit Button */}
                 <Button
                   type="submit"
                   className="w-full btn-gradient"
                   disabled={isLoading}
                 >
-                  {isLoading  ? 'Processing...': isLogin ? 'Sign In' : 'Sign Up'}
+                  {isLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Sign Up'}
                 </Button>
-                <Button onClick={handleGoogleSignIn} className='flex items-center bg-transparent text-black border-2 ml-10 hover:bg-gray-200'>
-                  <img src="https://media.wired.com/photos/5926ffe47034dc5f91bed4e8/master/w_1604,h_802,c_limit/google-logo.jpg" className="h-6"/> {isLogin ? "Sign in with Google" : "Sign up with Google"}
+
+                {/* Google Sign-in */}
+                <Button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className='flex items-center bg-transparent text-black border-2 ml-10 hover:bg-gray-200'
+                >
+                  <img
+                    src="https://media.wired.com/photos/5926ffe47034dc5f91bed4e8/master/w_1604,h_802,c_limit/google-logo.jpg"
+                    className="h-6 mr-2"
+                  />
+                  {isLogin ? "Sign in with Google" : "Sign up with Google"}
                 </Button>
               </form>
+
 
               <div className="mt-2 text-center">
                 <button

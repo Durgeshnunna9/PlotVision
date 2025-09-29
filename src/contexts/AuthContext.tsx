@@ -3,6 +3,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 interface User extends SupabaseUser {
+  avatar_url?: string | null; // correct
+  // avatar_url(avatar_url: any): unknown;
   name?: string;
   role?: "admin" | "agent" | "manager" | string;
 }
@@ -34,16 +36,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         .from("profiles")
         .select("*")
         .eq("id", supabaseUser.id)
-        .single();
-
-      if (error) {
-        console.error("Profile load error:", error.message);
+        .maybeSingle();
+  
+      if (!profile) {
+        // create a default profile for new users
+        const { error: insertError } = await supabase.from("profiles").insert({
+          id: supabaseUser.id,
+          full_name: supabaseUser.user_metadata?.full_name,
+          role: "agent",
+          phone: supabaseUser.user_metadata?.phone ?? "",
+          avatar_url: supabaseUser.user_metadata?.avatar_url ?? null,
+        });
+  
+        if (insertError) console.error("Profile creation error:", insertError.message);
       }
-
+  
       setUser({
         ...supabaseUser,
-        name: profile?.full_name ?? supabaseUser.email,
-        role: (profile?.role as "admin" | "agent" | "manager") ?? undefined,
+        name: profile?.full_name ?? supabaseUser.user_metadata?.full_name ?? supabaseUser.email,
+        role: (profile?.role as "admin" | "agent" | "manager") ?? "agent",
+        avatar_url: profile?.avatar_url ?? null,
       });
     } catch (err) {
       console.error("Unexpected error loading profile:", err);

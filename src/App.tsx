@@ -11,7 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AuthenticatedRoute from "./components/AuthenticatedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Onboarding from "./pages/Onboarding";
+// import Onboarding from "./pages/Onboarding";
 import Performance from "./pages/Performance";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
@@ -33,14 +33,14 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Login />} />
-            <Route 
+            {/* <Route 
               path="/onboarding" 
               element={
                 <AuthenticatedRoute>
                   <Onboarding />
                 </AuthenticatedRoute>
               } 
-            />
+            /> */}
             <Route 
               path="/dashboard" 
               element={

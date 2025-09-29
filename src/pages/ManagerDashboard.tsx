@@ -337,7 +337,7 @@ const ManagerDashboard = () => {
                       {agent.rating ?? '0'}
                     </Badge>
                     <div className="text-xs text-muted-foreground mt-1">
-                      ${(agent.total_sales ?? 0).toLocaleString()}
+                    ₹{(agent.total_sales ?? 0).toLocaleString()} K
                     </div>
                   </div>
                 </div>
@@ -352,7 +352,7 @@ const ManagerDashboard = () => {
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-semibold text-accent">
-                      ${( (agent.total_sales ?? 0) / 1000000).toFixed(1)}M
+                    ₹{( (agent.total_sales ?? 0) / 1000000).toFixed(1)}K
                     </p>
                     <p className="text-xs text-muted-foreground">Sales</p>
                   </div>

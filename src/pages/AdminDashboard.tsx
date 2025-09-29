@@ -4,7 +4,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import PropertyCard from '@/components/dashboard/PropertyCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Users, UserCheck, IndianRupee, TrendingUp, TrendingDown } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
 
 const AdminDashboard = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -79,6 +79,7 @@ const AdminDashboard = () => {
       // Properties
       const { data: propsData } = await supabase.from('properties').select('*');
       setProperties(propsData || []);
+      console.log("all Data", propsData);
 
       // Clients
       const { data: clientsData } = await supabase.from('clients').select('*');
@@ -105,9 +106,11 @@ const AdminDashboard = () => {
       // Property types pie chart
       const typeCount: Record<string, number> = {};
       propsData?.forEach((p) => {
-        typeCount[p.type] = (typeCount[p.type] || 0) + 1;
+        typeCount[p.property_type] = (typeCount[p.property_type] || 0) + 1;
+        
       });
       const propertyTypes = Object.entries(typeCount).map(([type, count]) => ({ type, count }));
+      
 
       setAnalytics({
         totalProperties,
@@ -208,41 +211,70 @@ const AdminDashboard = () => {
             <CardTitle>Property Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={analytics.propertyTypes}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
-                  label={({ type, count }) => `${type}: ${count}`}
-                >
-                  {analytics.propertyTypes && analytics.propertyTypes.length > 0 ? (
-                    <PieChart>
-                      <Pie
-                        data={analytics.propertyTypes}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="count"
-                        label={({ type, percentage }) => `${type} ${percentage}%`}
-                      >
-                        {analytics.propertyTypes.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  ) : (
-                    <p className="text-muted-foreground text-center">No data available</p>
-                  )}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+          <ResponsiveContainer width="100%" height={300}>
+      <PieChart>
+        <Pie
+          data={analytics.propertyTypes}
+          cx="50%"
+          cy="50%"
+          outerRadius={80}
+          dataKey="count"
+          nameKey="type"
+          activeIndex={0} // index of slice to enlarge (controlled on hover)
+          activeShape={(props) => {
+            const RADIAN = Math.PI / 180;
+            const {
+              cx,
+              cy,
+              midAngle,
+              innerRadius,
+              outerRadius,
+              startAngle,
+              endAngle,
+              fill,
+              payload,
+              percent,
+              value,
+            } = props;
+
+            const sin = Math.sin(-RADIAN * midAngle);
+            const cos = Math.cos(-RADIAN * midAngle);
+            const sx = cx + (outerRadius + 10) * cos;
+            const sy = cy + (outerRadius + 10) * sin;
+
+            return (
+              <g>
+                {/* Enlarged slice */}
+                <Sector
+                  cx={cx}
+                  cy={cy}
+                  innerRadius={innerRadius}
+                  outerRadius={outerRadius + 10} // bigger on hover
+                  startAngle={startAngle}
+                  endAngle={endAngle}
+                  fill={fill}
+                />
+                {/* Label */}
+                <text
+                  x={sx}
+                  y={sy}
+                  textAnchor="middle"
+                  fill="#333"
+                >{`${payload.type}: ${value}`}</text>
+              </g>
+            );
+          }}
+        >
+          {/* {analytics.propertyTypes.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={COLORS[index % COLORS.length]}
+            />
+          ))} */}
+        </Pie>
+        <Tooltip formatter={(value, name) => [`${value}`, `${name}`]} />
+      </PieChart>
+    </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
