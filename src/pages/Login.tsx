@@ -439,21 +439,22 @@ const Login = () => {
                   {/* Admin */}
                   <div className="bg-white p-3 rounded border-l-4 border-green-500 shadow-sm">
                     <h3 className="font-medium text-gray-700">Admin</h3>
-                    <p className="text-gray-600 text-sm"><span className="font-medium">Username:</span> green@gmail.com</p>
-                    <p className="text-gray-600 text-sm"><span className="font-medium">Password:</span> green12345</p>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Username:</span> admin@test.com</p>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Password:</span> admin12345</p>
                   </div>
 
                   {/* Manager */}
                   <div className="bg-white p-3 rounded border-l-4 border-blue-500 shadow-sm">
                     <h3 className="font-medium text-gray-700">Manager</h3>
-                    <p className="text-gray-600 text-sm"><span className="font-medium">Username:</span> blue@gmail.com</p>
-                    <p className="text-gray-600 text-sm"><span className="font-medium">Password:</span> blue12345</p>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Username:</span> manager@test.com</p>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Password:</span> manager12345</p>
                   </div>
 
                   {/* Agent */}
                   <div className="bg-white p-3 rounded border-l-4 border-red-500 shadow-sm">
                     <h3 className="font-medium text-gray-700">Agent</h3>
-                    <p>Google Sign in </p>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Username:</span> agent@test.com</p>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Password:</span> agent12345</p>
                   </div>
                 </div>
               </div>
