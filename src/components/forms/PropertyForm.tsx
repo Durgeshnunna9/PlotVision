@@ -804,8 +804,8 @@ const uploadFiles = async (files: File[], folder: string): Promise<string[]> => 
             className="w-full mt-1 p-2 border rounded-md bg-white hover:bg-gray-100 "
           >
             <option value="" disabled hidden>Choose</option>
-            <option value="new">New Building</option>
-            <option value="old">Old Building</option>
+            <option value="new_building">New Building</option>
+            <option value="old_building">Old Building</option>
           </select>
         </div>
       </div>
@@ -859,12 +859,12 @@ const uploadFiles = async (files: File[], folder: string): Promise<string[]> => 
       <div className="p-1">
         <h2 className="block font-bold pl-2 mb-3 text-xl">Media Details</h2>
 
-        {/* <div
+        <div
           className={`grid gap-4 ${
             formData.parking_availability === "yes" ? "grid-cols-3" : "grid-cols-2"
           }`}
         >
-          Property Photos
+          {/* Property Photos */}
           <div>
             <label htmlFor="property_photos" className="block pl-2 font-medium">
               Property Photos
@@ -877,10 +877,10 @@ const uploadFiles = async (files: File[], folder: string): Promise<string[]> => 
               className="w-full p-2 rounded-md border"
               onChange={(e) => handleImageChange(e, "property_photos")}
             />
-          </div> */}
+          </div>
 
           {/* Parking Photos */}
-          {/* {formData.parking_availability === "yes" && (
+          {formData.parking_availability === "yes" && (
             <div>
               <label htmlFor="parking_photos" className="block pl-2 font-medium">
                 Parking Pictures
@@ -894,10 +894,10 @@ const uploadFiles = async (files: File[], folder: string): Promise<string[]> => 
                 onChange={(e) => handleImageChange(e, "parking_photos")}
               />
             </div>
-          )} */}
+          )}
 
           {/* Video Upload */}
-          {/* <div>
+          <div>
             <label htmlFor="video_upload" className="block pl-2 font-medium">
               Video
             </label>
@@ -908,8 +908,8 @@ const uploadFiles = async (files: File[], folder: string): Promise<string[]> => 
               className="w-full p-2 rounded-md border"
               onChange={handleVideoChange}
             />
-          </div> */}
-        {/* </div> */}
+          </div>
+        </div>
       </div>
 
 
