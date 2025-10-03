@@ -83,15 +83,7 @@ export type Database = {
           phone?: string | null
           status?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "clients_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       company_profile: {
         Row: {
@@ -154,15 +146,61 @@ export type Database = {
           id?: string
           status?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "deals_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      image_uploads: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      manager_agents: {
+        Row: {
+          agent_id: string
+          assigned_at: string | null
+          id: string
+          manager_id: string
+        }
+        Insert: {
+          agent_id: string
+          assigned_at?: string | null
+          id?: string
+          manager_id: string
+        }
+        Update: {
+          agent_id?: string
+          assigned_at?: string | null
+          id?: string
+          manager_id?: string
+        }
+        Relationships: []
       }
       managers: {
         Row: {
@@ -203,33 +241,57 @@ export type Database = {
         }
         Relationships: []
       }
+      performance: {
+        Row: {
+          clients: number | null
+          created_at: string
+          id: number
+          listing: number | null
+          rating: string | null
+          sale: number | null
+        }
+        Insert: {
+          clients?: number | null
+          created_at?: string
+          id?: number
+          listing?: number | null
+          rating?: string | null
+          sale?: number | null
+        }
+        Update: {
+          clients?: number | null
+          created_at?: string
+          id?: number
+          listing?: number | null
+          rating?: string | null
+          sale?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
-          created_at: string | null
-          email: string | null
-          full_name: string | null
+          full_name: string
           id: string
-          phone: string | null
+          phone: number
           role: string | null
+          updated_at: string
         }
         Insert: {
           avatar_url?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
+          full_name: string
           id: string
-          phone?: string | null
+          phone: number
           role?: string | null
+          updated_at?: string
         }
         Update: {
           avatar_url?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
+          full_name?: string
           id?: string
-          phone?: string | null
+          phone?: number
           role?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -239,28 +301,28 @@ export type Database = {
           advantages: Json | null
           building_age: string | null
           building_condition: string | null
-          corner_peice: boolean | null
+          corner_peice: string | null
           corner_side: string | null
           distance: string | null
-          electricity: boolean | null
+          electricity: string | null
           entry_direction: string | null
           facilities: Json | null
           floor: string | null
           footfall_per_hour: number | null
           front_offset: number | null
-          generator: boolean | null
+          generator: string | null
           id: string
           landmark: string | null
           location: string | null
-          owner_contacted: boolean | null
-          parking_availability: boolean | null
+          owner_contacted: string | null
+          parking_availability: string | null
           parking_capacity_2w: number | null
           parking_capacity_4w: number | null
           parking_photos: Json | null
           property_photos: Json | null
           property_type: string | null
           rental_value: number | null
-          road_facing: boolean | null
+          road_facing: string | null
           setback: string | null
           shutter_length: number | null
           shutter_width: number | null
@@ -273,7 +335,7 @@ export type Database = {
           store_width: number | null
           user_id: string
           video: Json | null
-          washroom: boolean | null
+          washroom: string | null
           water: string | null
         }
         Insert: {
@@ -281,28 +343,28 @@ export type Database = {
           advantages?: Json | null
           building_age?: string | null
           building_condition?: string | null
-          corner_peice?: boolean | null
+          corner_peice?: string | null
           corner_side?: string | null
           distance?: string | null
-          electricity?: boolean | null
+          electricity?: string | null
           entry_direction?: string | null
           facilities?: Json | null
           floor?: string | null
           footfall_per_hour?: number | null
           front_offset?: number | null
-          generator?: boolean | null
+          generator?: string | null
           id?: string
           landmark?: string | null
           location?: string | null
-          owner_contacted?: boolean | null
-          parking_availability?: boolean | null
+          owner_contacted?: string | null
+          parking_availability?: string | null
           parking_capacity_2w?: number | null
           parking_capacity_4w?: number | null
           parking_photos?: Json | null
           property_photos?: Json | null
           property_type?: string | null
           rental_value?: number | null
-          road_facing?: boolean | null
+          road_facing?: string | null
           setback?: string | null
           shutter_length?: number | null
           shutter_width?: number | null
@@ -315,7 +377,7 @@ export type Database = {
           store_width?: number | null
           user_id?: string
           video?: Json | null
-          washroom?: boolean | null
+          washroom?: string | null
           water?: string | null
         }
         Update: {
@@ -323,28 +385,28 @@ export type Database = {
           advantages?: Json | null
           building_age?: string | null
           building_condition?: string | null
-          corner_peice?: boolean | null
+          corner_peice?: string | null
           corner_side?: string | null
           distance?: string | null
-          electricity?: boolean | null
+          electricity?: string | null
           entry_direction?: string | null
           facilities?: Json | null
           floor?: string | null
           footfall_per_hour?: number | null
           front_offset?: number | null
-          generator?: boolean | null
+          generator?: string | null
           id?: string
           landmark?: string | null
           location?: string | null
-          owner_contacted?: boolean | null
-          parking_availability?: boolean | null
+          owner_contacted?: string | null
+          parking_availability?: string | null
           parking_capacity_2w?: number | null
           parking_capacity_4w?: number | null
           parking_photos?: Json | null
           property_photos?: Json | null
           property_type?: string | null
           rental_value?: number | null
-          road_facing?: boolean | null
+          road_facing?: string | null
           setback?: string | null
           shutter_length?: number | null
           shutter_width?: number | null
@@ -357,7 +419,7 @@ export type Database = {
           store_width?: number | null
           user_id?: string
           video?: Json | null
-          washroom?: boolean | null
+          washroom?: string | null
           water?: string | null
         }
         Relationships: []
@@ -385,13 +447,6 @@ export type Database = {
           sale_date?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "sales_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "sales_property_id_fkey"
             columns: ["property_id"]
@@ -459,15 +514,79 @@ export type Database = {
           task_name?: string | null
           title?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      trigger_log: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          role: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          role?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {
@@ -495,13 +614,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
+      get_user_role: {
+        Args: { _user_id: string }
         Returns: string
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "agent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -628,6 +754,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "agent"],
+    },
   },
 } as const
