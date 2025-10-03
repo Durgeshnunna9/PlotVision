@@ -66,11 +66,11 @@ const HeatmapAreas = () => {
   return (
     <div>
       <MapContainer
-        center={[22.9734, 78.6569]}
+        center={[22.9734, 78.6569] as [number, number]}
         zoom={5}
         style={{ height: "600px", width: "100%" }}
-        scrollWheelZoom
-        maxBounds={indiaBounds}
+        scrollWheelZoom={true}
+        maxBounds={indiaBounds as [[number, number], [number, number]]}
         maxBoundsViscosity={1.0}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
