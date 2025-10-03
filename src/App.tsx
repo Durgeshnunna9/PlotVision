@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import Properties from "./pages/Properties"
 import Agents from "./pages/Agents"
 import UserManagement from "./pages/UserManagement"
+import Managers from "./pages/Managers"
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthenticatedRoute from "./components/AuthenticatedRoute";
 import Login from "./pages/Login";
@@ -117,6 +118,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/managers" 
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <Managers />
+                </ProtectedRoute>
+              } 
+            />
+            <Route
               path="/reports" 
               element={
                 <ProtectedRoute roles={['admin', 'manager']}>

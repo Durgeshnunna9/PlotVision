@@ -8,7 +8,8 @@ import {
   Map,
   ClipboardList,
   TrendingUp,
-  Settings
+  Settings,
+  UsersRound
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,6 +50,12 @@ const sidebarItems: SidebarItem[] = [
     icon: Users,
     label: 'Users',
     path: '/users',
+    roles: ['admin']
+  },
+  {
+    icon: UsersRound,
+    label: 'Managers',
+    path: '/managers',
     roles: ['admin']
   },
   // {

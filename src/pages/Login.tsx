@@ -172,12 +172,12 @@ const Login = () => {
   
       // 3️⃣ Insert profile row
       const { error: profileError } = await supabase
-        .from("profiles") // or 'user_profiles'
+        .from("profiles")
         .upsert([
           {
             id: userId,
             full_name,
-            phone,
+            phone: phone ? parseInt(phone) : 0,
             role: "agent", // default role
             avatar_url,
           },

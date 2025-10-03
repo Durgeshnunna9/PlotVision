@@ -43,18 +43,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const { error: insertError } = await supabase.from("profiles").insert({
           id: supabaseUser.id,
           full_name: supabaseUser.user_metadata?.full_name,
-          role: "agent",
-          phone: supabaseUser.user_metadata?.phone ?? "",
+          phone: supabaseUser.user_metadata?.phone ? parseInt(supabaseUser.user_metadata.phone) : 0,
           avatar_url: supabaseUser.user_metadata?.avatar_url ?? null,
         });
   
         if (insertError) console.error("Profile creation error:", insertError.message);
+        
+        // Create default agent role
+        await supabase.from("user_roles").insert({
+          user_id: supabaseUser.id,
+          role: "agent"
+        });
       }
+
+      // Fetch user role from user_roles table
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", supabaseUser.id)
+        .maybeSingle();
   
       setUser({
         ...supabaseUser,
         name: profile?.full_name ?? supabaseUser.user_metadata?.full_name ?? supabaseUser.email,
-        role: (profile?.role as "admin" | "agent" | "manager") ?? "agent",
+        role: (roleData?.role as "admin" | "agent" | "manager") ?? "agent",
         avatar_url: profile?.avatar_url ?? null,
       });
     } catch (err) {

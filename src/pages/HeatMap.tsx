@@ -50,7 +50,7 @@ const areas: {
 ];
 
 // India bounds to restrict map
-const indiaBounds: LatLngExpression[] = [
+const indiaBounds: [[number, number], [number, number]] = [
   [6.55, 68.11],   // SW
   [35.67, 97.40],  // NE
 ];
@@ -66,11 +66,13 @@ const HeatmapAreas = () => {
   return (
     <div>
       <MapContainer
-        center={[22.9734, 78.6569] as [number, number]}
+        // @ts-ignore - react-leaflet type definitions issue
+        center={[22.9734, 78.6569]}
         zoom={5}
         style={{ height: "600px", width: "100%" }}
         scrollWheelZoom={true}
-        maxBounds={indiaBounds as [[number, number], [number, number]]}
+        // @ts-ignore
+        maxBounds={indiaBounds}
         maxBoundsViscosity={1.0}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />

@@ -279,14 +279,14 @@ const uploadFiles = async (files: File[], folder: string): Promise<string[]> => 
       const payload = {
         ...dataToSubmit,
         user_id: user?.id,
-        // Convert "yes"/"no" fields to boolean
-        corner_peice: dataToSubmit.corner_peice === "yes",
-        road_facing: dataToSubmit.road_facing === "yes",
-        parking_availability: dataToSubmit.parking_availability === "yes",
-        washroom: dataToSubmit.washroom === "yes",
-        electricity: dataToSubmit.electricity === "yes",
-        generator: dataToSubmit.generator === "yes",
-        owner_contacted: dataToSubmit.owner_contacted === "yes",
+        // Keep text fields as strings
+        corner_peice: dataToSubmit.corner_peice,
+        road_facing: dataToSubmit.road_facing,
+        parking_availability: dataToSubmit.parking_availability,
+        washroom: dataToSubmit.washroom,
+        electricity: dataToSubmit.electricity,
+        generator: dataToSubmit.generator,
+        owner_contacted: dataToSubmit.owner_contacted,
         // File URLs
         property_photos: propertyPhotosUrls.length ? propertyPhotosUrls : null,
         parking_photos: parkingPhotosUrls.length ? parkingPhotosUrls : null,
