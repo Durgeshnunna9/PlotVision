@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 // import Onboarding from "./pages/Onboarding";
 import Performance from "./pages/Performance";
+import AssignedAgents from "./pages/AssignedAgents";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import HeatMap from './pages/HeatMap';
@@ -106,6 +107,14 @@ const App = () => (
               element={
                 <ProtectedRoute roles={['agent']}>
                   <Performance />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/assigned_agents" 
+              element={
+                <ProtectedRoute roles={['manager']}>
+                  <AssignedAgents />
                 </ProtectedRoute>
               } 
             />

@@ -9,13 +9,21 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        teal: "bg-teal text-teal",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        outline: "text-foreground",
+        green: "border-transparent bg-green-500 text-white hover:bg-green-600",
+        yellow: "border-transparent bg-yellow-400 text-black hover:bg-yellow-500",
+        blue: "border-transparent bg-blue-500 text-white hover:bg-blue-600",
+        purple: "border-transparent bg-purple-500 text-white hover:bg-purple-600",
+        pink: "border-transparent bg-pink-500 text-white hover:bg-pink-600",
+        teal: "border-transparent bg-teal-500 text-white hover:bg-teal-600",
+        orange: "border-transparent bg-orange-400 text-black hover:bg-orange-500",
+        gray: "border-transparent bg-gray-400 text-black hover:bg-gray-500",
+        slate: "border-transparent bg-slate-400 text-black hover:bg-slate-500",
+        amber: "border-transparent bg-amber-400 text-black hover:bg-amber-500",
+        indigo: "border-transparent bg-indigo-500 text-white hover:bg-indigo-600",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -58,9 +58,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Fetch user role from user_roles table
       const { data: roleData } = await supabase
-        .from("user_roles")
+        .from("profiles")
         .select("role")
-        .eq("user_id", supabaseUser.id)
+        .eq("id", supabaseUser.id)
         .maybeSingle();
   
       setUser({

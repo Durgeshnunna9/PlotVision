@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, UserPlus, X } from 'lucide-react';
+import { Users, UserPlus, X, UserIcon } from 'lucide-react';
+import { IconUsersGroup } from '@tabler/icons-react';
 
 interface Manager {
   id: string;
@@ -41,71 +42,47 @@ const Managers = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch managers
-      const { data: managerRoles } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'manager');
-
-      const managerIds = managerRoles?.map(r => r.user_id) || [];
-
-      if (managerIds.length > 0) {
-        const { data: managersData } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .in('id', managerIds);
-        
-        setManagers(managersData || []);
-      }
-
-      // Fetch agents
-      const { data: agentRoles } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'agent');
-
-      const agentIds = agentRoles?.map(r => r.user_id) || [];
-
-      if (agentIds.length > 0) {
-        const { data: agentsData } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .in('id', agentIds);
-        
-        setAgents(agentsData || []);
-      }
-
+      // Fetch all profiles with roles
+      const { data: profilesData, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, role");
+  
+      if (error) throw error;
+  
+      // Separate managers and agents
+      const managersData = profilesData?.filter(p => p.role === "manager") || [];
+      const agentsData = profilesData?.filter(p => p.role === "agent") || [];
+  
+      setManagers(managersData);
+      setAgents(agentsData);
+  
       // Fetch assignments
-      const { data: assignmentsData } = await supabase
-        .from('manager_agents')
-        .select('id, manager_id, agent_id');
-
+      const { data: assignmentsData, error: assignmentsError } = await supabase
+        .from("manager_agents")
+        .select("id, manager_id, agent_id");
+  
+      if (assignmentsError) throw assignmentsError;
+  
       if (assignmentsData) {
-        const enrichedAssignments = await Promise.all(
-          assignmentsData.map(async (assignment) => {
-            const agent = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', assignment.agent_id)
-              .single();
-            
-            return {
-              manager_id: assignment.manager_id,
-              agent_id: assignment.agent_id,
-              agent_name: agent.data?.full_name || 'Unknown',
-              assignment_id: assignment.id
-            };
-          })
-        );
-        
+        // Enrich assignments with agent names from already fetched agents
+        const enrichedAssignments = assignmentsData.map((assignment) => {
+          const agent = agentsData.find(a => a.id === assignment.agent_id);
+          return {
+            manager_id: assignment.manager_id,
+            agent_id: assignment.agent_id,
+            agent_name: agent?.full_name || "Unknown",
+            assignment_id: assignment.id,
+          };
+        });
+  
         setAssignments(enrichedAssignments);
       }
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  };
+  };  
 
   const assignAgentToManager = async () => {
     if (!selectedManager || !selectedAgent) {
@@ -232,6 +209,7 @@ const Managers = () => {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium mb-3">
                     <Users className="h-4 w-4" />
+                    
                     Assigned Agents ({managerAgents.length})
                   </div>
                   
@@ -246,7 +224,7 @@ const Managers = () => {
                         >
                           <span className="text-sm">{assignment.agent_name}</span>
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => removeAssignment(assignment.assignment_id)}
                           >

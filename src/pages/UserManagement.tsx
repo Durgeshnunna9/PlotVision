@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,9 +15,13 @@ interface UserWithRole {
   role?: string;
 }
 
+const roleOptions = ["admin", "manager", "agent"] as const;
+
 const UserManagement = () => {
   const [members, setMembers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editedRole, setEditedRole] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => { fetchUsers(); }, []);
@@ -25,28 +29,16 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Fetch profiles with their roles from user_roles table
-      const { data: profilesData, error: profilesError } = await supabase
+      const { data: profilesData, error } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, phone');
-      
-      if (profilesError) throw profilesError;
+        .select('id, full_name, avatar_url, phone, role');
 
-      // Fetch user roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-      
-      if (rolesError) throw rolesError;
+      if (error) throw error;
 
-      // Combine profiles with roles
-      const usersWithRoles = profilesData?.map(profile => {
-        const userRole = rolesData?.find(r => r.user_id === profile.id);
-        return {
-          ...profile,
-          role: userRole?.role || 'agent'
-        };
-      }) || [];
+      const usersWithRoles = profilesData?.map(profile => ({
+        ...profile,
+        role: profile.role || 'agent',
+      })) || [];
 
       setMembers(usersWithRoles);
     } catch (error: any) {
@@ -56,23 +48,19 @@ const UserManagement = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: string) => {
+  const updateUserRole = async (userId: string, newRole: 'admin' | 'manager' | 'agent') => {
     try {
-      // Delete existing role
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
-
-      // Insert new role
       const { error } = await supabase
-        .from('user_roles')
-        .insert([{ user_id: userId, role: newRole as 'admin' | 'manager' | 'agent' }]);
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
 
       if (error) throw error;
-      
+
       toast({ title: 'Success', description: 'User role updated successfully' });
       fetchUsers();
+      setEditingUserId(null);
+      setEditedRole('');
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
@@ -81,20 +69,13 @@ const UserManagement = () => {
   const deleteUser = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     try {
-      // Delete role first (will cascade)
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
-
-      // Delete profile
       const { error } = await supabase
         .from('profiles')
         .delete()
         .eq('id', userId);
 
       if (error) throw error;
-      
+
       toast({ title: 'Deleted', description: 'User removed successfully' });
       fetchUsers();
     } catch (error: any) {
@@ -102,13 +83,23 @@ const UserManagement = () => {
     }
   };
 
-  const getRoleBadgeVariant = (role: string) => {
+  const getRoleBadgeVariant = (role: "admin" | "agent" | "manager") => {
     switch (role) {
-      case 'admin': return 'destructive';
-      case 'manager': return 'secondary';
-      case 'agent': return 'default';
+      case 'admin': return 'indigo';
+      case 'manager': return 'pink';
+      case 'agent': return 'amber';
       default: return 'outline';
     }
+  };
+
+  const handleEditClick = (userId: string, currentRole: string) => {
+    setEditingUserId(userId);
+    setEditedRole(currentRole);
+  };
+
+  const handleCancelClick = () => {
+    setEditingUserId(null);
+    setEditedRole('');
   };
 
   if (loading) {
@@ -138,34 +129,65 @@ const UserManagement = () => {
             <CardTitle className="text-lg font-semibold mb-2">{user.full_name || 'No Name'}</CardTitle>
             
             {/* Role Badge */}
-            <Badge variant={getRoleBadgeVariant(user.role || 'agent')} className="mb-4">
+            <Badge variant={getRoleBadgeVariant(user.role as "admin" | "agent" | "manager")} className="mb-4">
               {user.role || 'agent'}
             </Badge>
             
             {/* Role Select */}
-            <Select 
-              value={user.role || 'agent'} 
-              onValueChange={v => updateUserRole(user.id, v)}
+            <Select
+              value={editingUserId === user.id ? editedRole : user.role || 'agent'}
+              onValueChange={v => setEditedRole(v)}
+              disabled={editingUserId !== user.id}
             >
               <SelectTrigger className="w-40 mx-auto mb-2">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="agent">Agent</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                {roleOptions.map(r => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            
-            {/* Delete Button */}
+
+            {/* Buttons */}
             <div className="flex gap-2 mt-2">
-              <Button 
-                variant="destructive" 
-                size="sm"
-                onClick={() => deleteUser(user.id)}
-              >
-                Delete
-              </Button>
+              {editingUserId === user.id ? (
+                <>
+                  <Button
+                    variant="green"
+                    size="sm"
+                    onClick={() => updateUserRole(user.id, editedRole as "admin" | "manager" | "agent")}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCancelClick}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="teal"
+                    size="sm"
+                    onClick={() => handleEditClick(user.id, user.role || 'agent')}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => deleteUser(user.id)}
+                  >
+                  Delete
+                </Button>
+              </>
+                
+              )}
+              
             </div>
           </Card>
         ))}

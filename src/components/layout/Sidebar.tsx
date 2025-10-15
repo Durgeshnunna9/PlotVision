@@ -11,6 +11,7 @@ import {
   Settings,
   UsersRound
 } from 'lucide-react';
+import { IconUsersGroup } from '@tabler/icons-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -47,11 +48,18 @@ const sidebarItems: SidebarItem[] = [
     roles: ['admin', 'manager']
   },
   {
-    icon: Users,
+    icon: IconUsersGroup,
+    label: 'Assigned Agents',
+    path: '/assigned_agents',
+    roles: ['manager']
+  },
+  {
+    icon: IconUsersGroup,
     label: 'Users',
     path: '/users',
     roles: ['admin']
   },
+
   {
     icon: UsersRound,
     label: 'Managers',
