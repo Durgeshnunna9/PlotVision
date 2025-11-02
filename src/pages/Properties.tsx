@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Building2, Plus, Search, Edit, Trash2, Eye, MapPin, Bed, Bath, Square, LandPlot } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Modal } from '../components/ui/Modal';
-import { supabase } from "@/lib/supabaseClient";
+// import { supabase } from "@/lib/supabaseClient";
 // Icons
 import PlaceIcon from '@mui/icons-material/Place';
 import MapIcon from '@mui/icons-material/Map';
@@ -93,57 +93,25 @@ const Properties = () => {
   useEffect(() => {
     let mounted = true;
 
+
     const fetchProperties = async () => {
-      let query = supabase.from("properties").select("*");
-      
-      // Filter based on user role
-      if (user?.role === 'agent') {
-        query = query.eq('user_id', user.id);
+      if (!user) return;
+      try{
+        const response = await fetch(`http://localhost:8090/properties/agent/${user.id}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" }
+        });
+        if (!response.ok) throw new Error("Failed to get properties");
+        const data = await response.json();
+        setProperties(data || []);
       }
-      
-      const { data, error } = await query;
-  
-      if (mounted) {
-        if (error) {
-          console.error("Error fetching properties:", error);
-          setProperties([]);
-        } else {
-          console.log(data);
-          setProperties(data || []);
-        }
+      catch(error){
+        console.error("Error fetching properties:", error);
+        setProperties([]);
       }
     };
-
-    if (user) {
-      fetchProperties();
-    }
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('properties-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'properties'
-        },
-        (payload) => {
-          console.log('Properties change received:', payload);
-          if (mounted) {
-            fetchProperties(); // Refetch data on any change
-          }
-        }
-      )
-      .subscribe();
-  
-    return () => { 
-      mounted = false;
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  // Filter properties based on search and filters
+    fetchProperties();
+  },[user]);
   const filteredProperties = properties.filter(property => {
     const matchesSearch = property.location?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          property.landmark?.toLowerCase().includes(searchTerm.toLowerCase()) ||

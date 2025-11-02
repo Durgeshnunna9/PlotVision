@@ -19,7 +19,7 @@ interface SidebarItem {
   icon: React.ElementType;
   label: string;
   path: string;
-  roles: ('admin' | 'agent' | 'manager')[];
+  roles: ('ADMIN' | 'AGENT' | 'MANAGER')[];
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -27,81 +27,81 @@ const sidebarItems: SidebarItem[] = [
     icon: LayoutDashboard,
     label: 'Dashboard',
     path: '/dashboard',
-    roles: ['admin', 'agent', 'manager']
+    roles: ['ADMIN', 'AGENT', 'MANAGER']
   },
   {
     icon: Building2,
     label: 'Properties',
     path: '/properties',
-    roles: ['admin', 'agent', 'manager']
+    roles: ['ADMIN', 'AGENT', 'MANAGER']
   },
   // {
   //   icon: Users,
   //   label: 'Clients',
   //   path: '/clients',
-  //   roles: ['admin', 'agent', 'manager']
+  //   roles: ['ADMIN', 'AGENT', 'MANAGER']
   // },
   {
     icon: UserCheck,
     label: 'Agents',
     path: '/agents',
-    roles: ['admin', 'manager']
+    roles: ['ADMIN', 'MANAGER']
   },
   {
     icon: IconUsersGroup,
     label: 'Assigned Agents',
     path: '/assigned_agents',
-    roles: ['manager']
+    roles: ['MANAGER']
   },
   {
     icon: IconUsersGroup,
     label: 'Users',
     path: '/users',
-    roles: ['admin']
+    roles: ['ADMIN']
   },
 
   {
     icon: UsersRound,
     label: 'Managers',
     path: '/managers',
-    roles: ['admin']
+    roles: ['ADMIN']
   },
   // {
   //   icon: ClipboardList,
   //   label: 'Tasks',
   //   path: '/tasks',
-  //   roles: ['agent', 'manager']
+  //   roles: ['AGENT', 'MANAGER']
   // },
   {
     icon: Map,
     label: 'HeatMap',
     path: '/heatmap',
-    roles: ['admin']
+    roles: ['ADMIN']
   },
   {
     icon: BarChart3,
     label: 'Analytics',
     path: '/analytics',
-    roles: ['admin', 'manager']
+    roles: ['ADMIN', 'MANAGER']
   },
   {
     icon: TrendingUp,
     label: 'Performance',
     path: '/performance',
-    roles: ['agent']
+    roles: ['AGENT']
   },
   {
     icon: FileText,
     label: 'Reports',
     path: '/reports',
-    roles: ['admin', 'manager']
+    roles: ['ADMIN', 'MANAGER']
   },
-  {
-    icon: Settings,
-    label: 'Settings',
-    path: '/settings',
-    roles: ['admin']
-  }
+  // {
+  //   icon: Settings,
+  //   label: 'Settings',
+  //   path: '/settings',
+  //   roles: ['ADMIN']
+  // }
 ];
 
 const Sidebar = () => {
@@ -109,7 +109,7 @@ const Sidebar = () => {
   const location = useLocation();
 
   const filteredItems = sidebarItems.filter(item => 
-    user && user.role && item.roles.includes(user.role as 'admin' | 'agent' | 'manager')
+    user && user.role && item.roles.includes(user.role as 'ADMIN' | 'AGENT' | 'MANAGER')
   );
 
   return (

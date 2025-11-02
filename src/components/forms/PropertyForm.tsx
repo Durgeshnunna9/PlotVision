@@ -61,7 +61,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onCancel, onSuccess 
     );
   }
   const [formData, setFormData] = useState<PropertyFormData>({
-    user_id: user?.id || "",
+    user_id: user?.id?.toString() || "",
     location: "" ,
     distance: "" ,
     footfall_per_hour: 0,
@@ -296,11 +296,15 @@ const uploadFiles = async (files: File[], folder: string): Promise<string[]> => 
         advantages: advantages.length ? advantages : null,
       };
   
-      // Insert into Supabase
-      const { data, error } = await supabase.from("properties").insert([payload]);
-      if (error) throw error;
-  
-      console.log("Inserted:", data);
+      // Insert into Backend
+      const response = await fetch("http://localhost:8090/properties/create",{
+        method: "POST",
+        headers: { "Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+        credentials: "include"});
+      if(!response.ok){"Failed to insert property"};
+      const responseData = await response.json();
+      console.log("Inserted:", responseData);
   
       // ✅ if everything works
       onSuccess?.();

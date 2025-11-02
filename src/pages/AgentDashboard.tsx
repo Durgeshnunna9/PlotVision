@@ -2,12 +2,13 @@ import StatCard from '@/components/dashboard/StatCard';
 import PropertyCard from '@/components/dashboard/PropertyCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Users, ClipboardList, TrendingUp, Calendar, Phone, Mail } from 'lucide-react';
-import { mockProperties, mockClients, mockTasks } from '@/data/mockData';
+import { Building2, Users, ClipboardList, TrendingUp, Calendar, Phone, Mail, MapPin, Edit, Eye, LandPlot, Trash2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-
+import { useAuth } from '@/contexts/AuthContext';
+import axios from 'axios';
+import Modal from '@mui/material/Modal';
+import { Button } from 'react-day-picker';
 // --- Types ---
 interface Trend {
   value: number;
@@ -27,277 +28,163 @@ interface PerformanceData {
 }
 // --- Component ---
 const AgentDashboard = () => {
-  const [agentProperties, setAgentProperties] = useState<any[]>([]);
-  const [agentClients, setAgentClients] = useState<any[]>([]);
+  const [trendListings, setTrendListings] = useState({ count: 0, trend: { value: 0, isPositive: true } });
+  const [trendTasks, setTrendTasks] = useState({ count: 0, trend: { value: 0, isPositive: true } });
+  const [trendSales, setTrendSales] = useState({ count: 0, trend: { value: 0, isPositive: true } });
   const [agentTasks, setAgentTasks] = useState<any[]>([]);
-  const [data, setData] = useState<PerformanceData[]>([]);
+  const [agentProperties, setAgentProperties] = useState<any[]>([]);
+  const [data, setData] =useState<PerformanceData[]>([]);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    fetchPerformanceData();
-  }, []);
-
-  const fetchPerformanceData = async () => {
-    const { data: perfData, error } = await supabase
-      .from("performance")          // your table name
-      .select("month, deals, revenue, commission")
-      .order("month", { ascending: true });
-
-    if (error) {
-      console.error("Error fetching performance data:", error);
-      return;
-    }
-
-    setData(perfData as PerformanceData[]);
-  };
-  // trends
-  const [trendListings, setTrendListings] = useState<StatResult>({
-    count: 0,
-    trend: { value: 0, isPositive: true },
-  });
-  
-  const [trendClients, setTrendClients] = useState<StatResult>({
-    count: 0,
-    trend: { value: 0, isPositive: true },
-  });
-  
-  const [trendTasks, setTrendTasks] = useState<StatResult>({
-    count: 0,
-    trend: { value: 0, isPositive: true },
-  });
-  
-  const [trendSales, setTrendSales] = useState<StatResult>({
-    count: 0,
-    trend: { value: 0, isPositive: true },
-  });
-
-  const [user, setUser] = useState<any>(null);
-
-  // --- fetch authenticated user ---
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
-  }, []);
-
-  // --- fetch main data ---
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    // Fetch properties
-    const { data: properties, error: propertiesError } = await supabase
-      .from("properties")
-      .select("*");
-    if (!propertiesError && properties) setAgentProperties(properties);
-
-    // Fetch clients
-    const { data: clients, error: clientsError } = await supabase
-      .from("clients")
-      .select("*");
-    if (!clientsError && clients) setAgentClients(clients);
-
-    // Fetch tasks
-    const { data: tasks, error: tasksError } = await supabase
-      .from("tasks")
-      .select("*");
-    if (!tasksError && tasks) setAgentTasks(tasks);
-  };
-
-  // --- Helper: calculate trend ---
+  // --- Helper to calculate trend ---
   function calculateTrend(current: number, previous: number): Trend {
     if (previous != null && previous > 0) {
       const trend = ((current - previous) / previous) * 100;
       return { value: trend, isPositive: trend >= 0 };
     }
-    return { value: 100, isPositive: true }; // fallback when no previous data
+    return { value: 100, isPositive: true };
   }
 
-  // --- Fetch Listings ---
-  async function fetchListings(userId: string): Promise<StatResult> {
-    const startOfThisMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      1
-    ).toISOString();
-    const startOfLastMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth() - 1,
-      1
-    ).toISOString();
+  // --- Load Agent ID from localStorage or user context ---
+  const [agentId, setAgentId] = useState<number | null>(null);
 
-    // Listings this month
-    const { count: thisMonth } = await supabase
-      .from("properties")
-      .select("*", { count: "exact", head: true })
-      .eq("agent_id", userId)
-      .gte("created_at", startOfThisMonth);
-
-    // Listings last month
-    const { count: lastMonth } = await supabase
-      .from("properties")
-      .select("*", { count: "exact", head: true })
-      .eq("agent_id", userId)
-      .gte("created_at", startOfLastMonth)
-      .lt("created_at", startOfThisMonth);
-
-    return {
-      count: thisMonth ?? 0,
-      trend: calculateTrend(thisMonth ?? 0, lastMonth ?? 0),
-    };
-  }
-
-  // --- Fetch Clients ---
-  async function fetchClients(userId: string): Promise<StatResult> {
-    const startOfThisMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      1
-    ).toISOString();
-    const startOfLastMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth() - 1,
-      1
-    ).toISOString();
-
-    const { count: thisMonth } = await supabase
-      .from("clients")
-      .select("*", { count: "exact", head: true })
-      .eq("agent_id", userId)
-      .gte("created_at", startOfThisMonth);
-
-    const { count: lastMonth } = await supabase
-      .from("clients")
-      .select("*", { count: "exact", head: true })
-      .eq("agent_id", userId)
-      .gte("created_at", startOfLastMonth)
-      .lt("created_at", startOfThisMonth);
-
-    return {
-      count: thisMonth ?? 0,
-      trend: calculateTrend(thisMonth ?? 0, lastMonth ?? 0),
-    };
-  }
-  // --- Fetch Tasks ---
-  async function fetchTasks(userId: string): Promise<StatResult> {
-    const startOfThisMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      1
-    ).toISOString();
-    const startOfLastMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth() - 1,
-      1
-    ).toISOString();
-
-    const { count: thisMonth } = await supabase
-      .from("tasks")
-      .select("*", { count: "exact", head: true })
-      .eq("agent_id", userId)
-      .neq("status", "completed")
-      .gte("created_at", startOfThisMonth);
-
-    const { count: lastMonth } = await supabase
-      .from("tasks")
-      .select("*", { count: "exact", head: true })
-      .eq("agent_id", userId)
-      .neq("status", "completed")
-      .gte("created_at", startOfLastMonth)
-      .lt("created_at", startOfThisMonth);
-
-    return {
-      count: thisMonth ?? 0,
-      trend: calculateTrend(thisMonth ?? 0, lastMonth ?? 0),
-    };
-  }
-
-  // --- Fetch Sales ---
-  async function fetchSales(userId: string): Promise<StatResult> {
-    const startOfThisMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      1
-    ).toISOString();
-    const startOfLastMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth() - 1,
-      1
-    ).toISOString();
-
-    const { data: thisMonthSales } = await supabase
-      .from("sales")
-      .select("amount")
-      .eq("agent_id", userId)
-      .gte("created_at", startOfThisMonth);
-
-    const { data: lastMonthSales } = await supabase
-      .from("sales")
-      .select("amount")
-      .eq("agent_id", userId)
-      .gte("created_at", startOfLastMonth)
-      .lt("created_at", startOfThisMonth);
-
-    const thisSum =
-      thisMonthSales?.reduce((sum, s) => sum + s.amount, 0) ?? 0;
-    const lastSum =
-      lastMonthSales?.reduce((sum, s) => sum + s.amount, 0) ?? 0;
-
-    return {
-      count: thisSum ?? 0,
-      trend: calculateTrend(thisSum ?? 0, lastSum ?? 0),
-    };
-  }
-
-  // --- Load trend data after user is fetched ---
   useEffect(() => {
-    if (!user?.id) return;
+    const storedAgent = localStorage.getItem("agent");
+    const storedUser = localStorage.getItem("user");
+    let derivedAgentId: number | null = null;
 
-    const loadData = async () => {
-      const listingsTrend = await fetchListings(user.id);
-      const clientsTrend = await fetchClients(user.id);
-      const tasksTrend = await fetchTasks(user.id);
-      const salesTrend = await fetchSales(user.id);
+    if (storedAgent) {
+      try {
+        const parsed = JSON.parse(storedAgent);
+        if (parsed?.agentId) derivedAgentId = parsed.agentId;
+      } catch {
+        console.warn("Invalid agent data in localStorage");
+      }
+    }
 
-      setTrendListings(listingsTrend);
-      setTrendClients(clientsTrend);
-      setTrendTasks(tasksTrend);
-      setTrendSales(salesTrend);
+    if (!derivedAgentId && storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser?.agentId) derivedAgentId = parsedUser.agentId;
+      } catch {
+        console.warn("Invalid user data in localStorage");
+      }
+    }
+
+    if (derivedAgentId) {
+      setAgentId(derivedAgentId);
+    } else {
+      console.warn("No agentId found — skipping performance data fetch");
+    }
+  }, []);
+
+  // --- Fetch Performance Data from Backend ---
+  useEffect(() => {
+    if (!agentId) return;
+
+    const fetchPerformanceDataFromBackend = async () => {
+      try {
+        const res = await fetch(`http://localhost:8090/api/performance/agent/${agentId}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          console.warn("Performance API returned error:", res.status, errText);
+          setData([]);
+          return;
+        }
+
+        const perf = await res.json();
+        if (Array.isArray(perf) && perf.length > 0) {
+          const normalized = perf.map((p: any) => ({
+            month: String(p.month ?? p.period ?? p.label ?? ""),
+            deals: Number(p.deals ?? 0),
+            revenue: Number(p.revenue ?? 0),
+            commission: Number(p.commission ?? 0),
+          }));
+          setData(normalized);
+        } else {
+          setData([]);
+        }
+      } catch (err) {
+        console.error("Error fetching performance data:", err);
+        setData([]);
+      }
     };
 
-    loadData();
-  }, [user?.id]);
-  
-  // This is used to calculate the trend of this month buildings
-  
+    fetchPerformanceDataFromBackend();
+  }, [agentId]);
 
+  // Fetch Dashboard Stats
+  useEffect(() => {
+    if (!agentId) return;
+
+    const fetchDashboardStats = async () => {
+      try {
+        const res = await fetch(`http://localhost:8090/api/dashboard/stats/${agentId}`);
+        if (!res.ok) {
+          console.warn("Dashboard stats fetch failed:", res.status);
+          return;
+        }
+
+        const stats = await res.json();
+        setTrendListings({
+          count: stats.listings || 0,
+          trend: { value: 0, isPositive: true },
+        });
+        setTrendTasks({
+          count: stats.pendingTasks || 0,
+          trend: { value: 0, isPositive: true },
+        });
+        setTrendSales({
+          count: stats.totalSales || 0,
+          trend: { value: 0, isPositive: true },
+        });
+      } catch (err) {
+        console.error("Error fetching dashboard stats:", err);
+      }
+    };
+
+    fetchDashboardStats();
+  }, [agentId]);
+
+  useEffect(() => {
+    const fetchAgentProperties = async () => {
+      try {
+        const response = await axios.get(`/api/dashboard/agent/${agentId}/latest-properties`);
+        setAgentProperties(response.data);
+      } catch (error) {
+        console.error("Error fetching agent properties:", error);
+      }
+    };
+    fetchAgentProperties();
+  }, [agentId]);
+  // --- Task color helpers ---
   const getTaskPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return 'bg-destructive text-destructive-foreground';
-      case 'medium':
-        return 'bg-warning text-warning-foreground';
-      case 'low':
-        return 'bg-success text-success-foreground';
+      case "high":
+        return "bg-destructive text-destructive-foreground";
+      case "medium":
+        return "bg-warning text-warning-foreground";
+      case "low":
+        return "bg-success text-success-foreground";
       default:
-        return 'bg-secondary text-secondary-foreground';
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
   const getTaskStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'bg-success text-success-foreground';
-      case 'in-progress':
-        return 'bg-accent text-accent-foreground';
-      case 'todo':
-        return 'bg-muted text-muted-foreground';
+      case "completed":
+        return "bg-success text-success-foreground";
+      case "in-progress":
+        return "bg-accent text-accent-foreground";
+      case "todo":
+        return "bg-muted text-muted-foreground";
       default:
-        return 'bg-secondary text-secondary-foreground';
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
@@ -308,21 +195,22 @@ const AgentDashboard = () => {
         <p className="text-muted-foreground">Manage your listings, clients, and track your performance.</p>
       </div>
 
+      <LineChart data={data}>
+        <XAxis dataKey="month" />
+        <YAxis />
+        <Tooltip />
+        <Line type="monotone" dataKey="revenue" stroke="#8884d8" strokeWidth={3} />
+        <Line type="monotone" dataKey="commission" stroke="#82ca9d" strokeWidth={3} />
+      </LineChart>
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
         <StatCard
           title="My Listings"
           value={trendListings.count}
           icon={Building2}
-          trend={ trendListings.trend}
+          trend={trendListings.trend}
           color="primary"
-        />
-        <StatCard
-          title="Active Clients"
-          value={trendClients.count}
-          icon={Users}
-          trend={trendClients.trend}
-          color="success"
         />
         <StatCard
           title="Pending Tasks"
@@ -335,7 +223,7 @@ const AgentDashboard = () => {
           title="This Month Sales"
           value={`₹${trendSales.count.toLocaleString()}`}
           icon={TrendingUp}
-          trend={trendTasks.trend}
+          trend={trendSales.trend}
           color="success"
         />
       </div>
@@ -408,60 +296,105 @@ const AgentDashboard = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Client Leads */}
-        <Card className="card-premium">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Recent Client Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {agentClients.map((client) => (
-                <div key={client.id} className="p-3 rounded-lg border border-border bg-card">
-                  <div className="flex items-center justify-between">
+      {/* <div>
+
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">My Active Listings</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {agentProperties.length === 0 ? (
+              <div className="col-span-full text-center text-muted-foreground">
+                No properties found.
+              </div>
+            ) : (
+              agentProperties.map((property) => (
+                <Card key={property.propertyId} className="property-card group">
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src={property.property_photos?.[0] ?? "/placeholder.jpg"}
+                      alt={property.title ?? "Property Image"}
+                      className="property-image w-full h-full object-cover group-hover:scale-110 transition-transform"
+                    />
+                    {property.featured && (
+                      <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
+                        Featured
+                      </Badge>
+                    )}
+                  </div>
+
+                  <CardContent className="p-4 space-y-3">
                     <div>
-                      <h4 className="font-medium">{client.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {client.type} • Budget: ${client.budget?.toLocaleString() || 'N/A'}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          <span>{client.phone}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          <span>{client.email}</span>
-                        </div>
+                      <h3 className="font-semibold text-lg">{property.location}</h3>
+                      <div className="flex items-center text-muted-foreground text-sm">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {property.landmark}
                       </div>
                     </div>
-                    <Badge className={`${
-                      client.status === 'active' ? 'bg-success/10 text-success' :
-                      client.status === 'converted' ? 'bg-primary/10 text-primary' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
-                      {client.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* My Listings */}
-      <div>
-        <h2 className="text-2xl font-semibold mb-4">My Active Listings</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {agentProperties.map((property) => (
-            <PropertyCard key={property.id} property={property} />
-          ))}
+                    <div className="flex justify-between items-center">
+                      <Badge variant="outline" className="text-xs">
+                        {property.store_model}
+                      </Badge>
+                    </div>
+
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center">
+                        <LandPlot className="h-5 w-5 mr-1" />
+                        {property.store_size} sqft
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {property.about_property}
+                    </p>
+
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          setSelectedProperty(property);
+                          setShowViewModal(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-1" /> View
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+
+          {showViewModal && selectedProperty && (
+            <Modal
+              isOpen={showViewModal}
+              onClose={() => setShowViewModal(false)}
+              title="Property Details"
+              size="xl"
+            >
+              <div className="p-4 space-y-4">
+                <h2 className="text-xl font-semibold">{selectedProperty.location}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {selectedProperty.about_property}
+                </p>
+                <img
+                  src={selectedProperty.property_photos?.[0] ?? "/placeholder.jpg"}
+                  className="rounded-md w-full h-64 object-cover"
+                />
+              </div>
+            </Modal>
+          )}
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

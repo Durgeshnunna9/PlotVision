@@ -10,11 +10,11 @@ const Dashboard = () => {
   if (!user) return null;
 
   switch (user.role) {
-    case 'admin':
+    case 'ADMIN':
       return <AdminDashboard />;
-    case 'agent':
+    case 'AGENT':
       return <AgentDashboard />;
-    case 'manager':
+    case 'MANAGER':
       return <ManagerDashboard />;
     default:
       return <NotFound />;

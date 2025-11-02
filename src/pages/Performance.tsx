@@ -4,7 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { TrendingUp, TrendingDown, Target, Award, IndianRupee, Building, Users, Calendar, Star, BarChart as BarChartIcon, } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
+// import { supabase } from '@/lib/supabaseClient';
 import { useState, useEffect } from 'react';
 
 const Performance = () => {
@@ -16,47 +16,89 @@ const Performance = () => {
 
   // Fetch all needed data
   useEffect(() => {
-    if (!user) return
+    // if (!user) return
 
+    // const fetchData = async () => {
+    //   // Agent profile
+    //   const { data: agentData } = await supabase
+    //     .from("profiles")
+    //     .select("*")
+    //     .eq("id", user.id)
+    //     .single()
+    //   setAgent(agentData)
+
+    //   // Properties assigned to agent
+    //   const { data: propsData } = await supabase
+    //     .from("properties")
+    //     .select("*")
+    //     .eq("agent_id", user.id)
+    //     .order("created_at", { ascending: false })
+    //   setProperties(propsData || [])
+
+      
+
+    //   // Sales trend (aggregate deals per month)
+    //   const { data: perfData, error } = await supabase.rpc("get_agent_performance", {
+    //     agent_uuid: user.id,
+    //     interval: "month",
+    //   })
+    //   if (!error) setMonthlyPerformance(perfData || [])
+    // }
+
+    
+
+    // const fetchData = async () => {
+    //   const [agentRes, propsRes] = await Promise.all([
+    //     fetch(`http://localhost:8090/agent/${user.id}`),
+    //     fetch(`http://localhost:8090/properties/agent/agentId`),
+    //     // fetch(`http://localhost:8090/performance/agent/agentId`),
+    //   ]);
+  
+    //   const agentData = await agentRes.json();
+    //   const propsData = await propsRes.json();
+    //   // const perfData = await perfRes.json();
+  
+    //   setAgent(agentData);
+    //   setProperties(propsData);
+    //   // setMonthlyPerformance(perfData);
+    // };
     const fetchData = async () => {
-      // Agent profile
-      const { data: agentData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single()
-      setAgent(agentData)
+      if (!user) return;
+      try{
+        const agentResponse = await fetch(`http://localhost:8090/agents/user/${user.id}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" }
+        });
+    
+        if (!agentResponse.ok) throw new Error("Failed to get agent data");
+    
+        const agentResult = await agentResponse.json();
+        console.log("Agent Loaded:", agentResult);
+    
+        const propertyResponse = await fetch("http://localhost:8090/performance/agent/${agent.agentId}", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
 
-      // Properties assigned to agent
-      const { data: propsData } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("agent_id", user.id)
-        .order("created_at", { ascending: false })
-      setProperties(propsData || [])
-
-      // Clients assigned to agent
-      const { data: clientsData } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("agent_id", user.id)
-        .order("created_at", { ascending: false })
-      setClients(clientsData || [])
-
-      // Sales trend (aggregate deals per month)
-      const { data: perfData, error } = await supabase.rpc("get_agent_performance", {
-        agent_uuid: user.id,
-        interval: "month",
-      })
-      if (!error) setMonthlyPerformance(perfData || [])
-    }
-
+        if (!propertyResponse.ok) throw new Error("Failed to get property data");
+    
+        const propertyResult = await propertyResponse.json();
+        console.log("Agent Loaded:", propertyResult);
+      }
+      catch(error){
+        console.error("Error fetching data:", error)
+        setAgent(null)
+        setProperties([])
+      }
+    };
     fetchData()
-  }, [user])
+  },[user])
+     
+    
+    
 
-  if (!agent) {
-    return <p>Loading performance data...</p>
-  }
+  
+  
 
   // Example goals (could also be in DB)
   const goals = [
@@ -109,56 +151,69 @@ const Performance = () => {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Sales</p>
-                <p className="text-2xl font-bold text-primary">
-                  {agent?.total_sales ? (agent.total_sales / 1000000).toFixed(1) + "K" : "₹0.0"}
-                </p>
-              </div>
-              <IndianRupee className="h-8 w-8 text-primary" />
+      {/* 🟢 Total Sales */}
+      <Card className="card-premium">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Sales</p>
+              <p className="text-2xl font-bold text-primary">
+                ₹
+                {agent?.total_sales
+                  ? (agent.total_sales / 1000000).toFixed(1) + "K"
+                  : "0.0"}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <IndianRupee className="h-8 w-8 text-primary" />
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Listings</p>
-                <p className="text-2xl font-bold text-success">{agent.active_listings || 0}</p>
-              </div>
-              <Building className="h-8 w-8 text-success" />
+      {/* 🟢 Active Listings */}
+      <Card className="card-premium">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Active Listings</p>
+              <p className="text-2xl font-bold text-success">
+                {agent?.active_listings ?? 0}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <Building className="h-8 w-8 text-success" />
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Clients</p>
-                <p className="text-2xl font-bold text-accent">{agent.clients_count || 0}</p>
-              </div>
-              <Users className="h-8 w-8 text-accent" />
+      {/* 🟢 Active Clients */}
+      <Card className="card-premium">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Active Clients</p>
+              <p className="text-2xl font-bold text-accent">
+                {agent?.clients_count ?? 0}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <Users className="h-8 w-8 text-accent" />
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="card-premium">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Avg. Days to Close</p>
-                <p className="text-2xl font-bold text-warning">{agent.avg_days_to_close || 0}</p>
-              </div>
-              <Calendar className="h-8 w-8 text-warning" />
+      {/* 🟢 Avg. Days to Close */}
+      <Card className="card-premium">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Avg. Days to Close</p>
+              <p className="text-2xl font-bold text-warning">
+                {agent?.avg_days_to_close ?? 0}
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Calendar className="h-8 w-8 text-warning" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
 
       {/* Goals */}
       <Card className="card-premium">
@@ -170,7 +225,7 @@ const Performance = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {goals.map((goal, i) => {
+            {agent && goals.map((goal, i) => {
               const Icon = goal.icon
               return (
                 <div key={i} className="space-y-3">
@@ -240,52 +295,6 @@ const Performance = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Recent Properties */}
-      <Card className="card-premium">
-        <CardHeader>
-          <CardTitle>My Recent Listings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {properties.slice(0, 5).map((p) => (
-              <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <div>
-                  <p className="font-medium">{p.title}</p>
-                  <p className="text-sm text-muted-foreground">{p.address}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold">${p.price.toLocaleString()}</p>
-                  <Badge>{p.status}</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Clients */}
-      <Card className="card-premium">
-        <CardHeader>
-          <CardTitle>My Recent Clients</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {clients.slice(0, 5).map((c) => (
-              <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <div>
-                  <p className="font-medium">{c.name}</p>
-                  <p className="text-sm text-muted-foreground">{c.email}</p>
-                </div>
-                <div className="text-right">
-                  <Badge>{c.status}</Badge>
-                  <p className="text-xs text-muted-foreground mt-1">{c.type}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

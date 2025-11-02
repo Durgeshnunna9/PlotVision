@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth,  } from '@/contexts/AuthContext';
 import heroImage from '@/assets/real-estate-hero.jpg';
 
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,8 +18,10 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [showTerms, setShowTerms] = useState(false);
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [age,setAge] = useState(0);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);  
   const [role, setRole] = useState<'agent'>('agent'); // Only agents can signup
@@ -121,71 +124,46 @@ const Login = () => {
     try {
       const formData = new FormData(e.currentTarget);
   
-      // ✅ Extract form values safely
       const email = (formData.get("email") as string)?.trim();
       const password = (formData.get("password") as string)?.trim();
-      const full_name = (formData.get("full_name") as string)?.trim();
+      const firstName = (formData.get("first_name") as string)?.trim();
+      const lastName = (formData.get("last_name") as string)?.trim();
       const phone = (formData.get("phone") as string)?.trim();
+      const age = parseInt((formData.get("age") as string) || "0", 10);
       const avatarFile = formData.get("avatar") as File | null;
   
-      // ✅ Validate required fields
-      if (!email || !password || !full_name || !phone) {
+      if (!email || !password || !firstName || !phone) {
         setMessage("Please fill in all required fields.");
         setIsLoading(false);
         return;
       }
   
-      // 1️⃣ Signup user in Supabase Auth
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name, phone }, // store metadata safely
-          emailRedirectTo: `${window.location.origin}/`,
-        },
+      // Step 1️⃣ Upload avatar to your backend (if you decide to support it)
+      // For now, we'll skip file upload and just store user data.
+  
+      // Step 2️⃣ Send user data to Spring Boot API
+      const response = await fetch("http://localhost:8090/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          mobile_number: phone,
+          age,
+          password,
+          role: "AGENT",
+        }),
       });
+      
   
-      if (signUpError) throw signUpError;
-      if (!signUpData.user) throw new Error("Signup failed, no user returned");
-  
-      const userId = signUpData.user.id;
-      let avatar_url: string | null = null;
-  
-      // 2️⃣ Upload avatar if provided
-      if (avatarFile && avatarFile.size > 0) {
-        const fileExt = avatarFile.name.split(".").pop();
-        const fileName = `${userId}-${Date.now()}.${fileExt}`;
-        const filePath = `  ${fileName}`;
-  
-        const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, avatarFile, { cacheControl: "3600", upsert: true });
-  
-        if (uploadError) throw uploadError;
-  
-        const { data: publicUrlData } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(filePath);
-  
-        avatar_url = publicUrlData.publicUrl;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Registration failed");
       }
-  
-      // 3️⃣ Insert profile row
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert([
-          {
-            id: userId,
-            full_name,
-            phone: phone ? parseInt(phone) : 0,
-            role: "agent", // default role
-            avatar_url,
-          },
-        ]);
-  
-      if (profileError) throw profileError;
-  
-      setMessage("Signup successful! Check your email for confirmation.");
+      
+      const result = await response.json();
+      setMessage(result.message || "Signup successful!");
       navigate("/dashboard");
     } catch (err: any) {
       console.error("Signup error:", err);
@@ -198,41 +176,27 @@ const Login = () => {
   
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError("");
-  try{
+
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-  
-    const { success, error } = await login(email, password);
-    console.log("Login result:", { success, error });
-  
-    if (!success) {
-      setError(error || "Login failed");
-      setIsLoading(false); // ✅ keep user on same page
+    const email = (formData.get("email") as string)?.trim();
+    const password = (formData.get("password") as string)?.trim();
+
+    if (!email || !password) {
+      setError("Please enter both email and password.");
       return;
     }
-  
-    // ✅ login successful, now check profile
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", (await supabase.auth.getUser()).data.user?.id)
-      .single();
-  
-    if (!profile?.role) {
-      navigate("/onboarding");
-    } else {
-      navigate("/dashboard");
+
+    const { success, error } = await login(email, password);
+
+    if (!success) {
+      setError(error || "Login failed");
+      return;
     }
-  
-    setIsLoading(false);
-  }
-    catch(err){
-      err
-    }
+
+    // now AuthProvider has updated user context
+    navigate("/dashboard");
   };
+
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -281,23 +245,42 @@ const Login = () => {
 
                 {!isLogin && (
                   <>
-                    {/* Name */}
+                    {/* First Name */}
                     <div className="space-y-2">
-                      <Label htmlFor="full_name">Full Name</Label>
+                      <Label htmlFor="first_name">First Name</Label>
                       <div className="relative">
                         <UserRound className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                         <Input
                           type="text"
-                          id="full_name"
-                          name="full_name"
-                          placeholder="Full Name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
+                          id="first_name"
+                          name="first_name"
+                          placeholder="First Name"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
                           required
                           className="pl-10"
                         />
                       </div>
                     </div>
+
+                    {/* Last Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name">Last Name</Label>
+                      <div className="relative">
+                        <UserRound className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                        <Input
+                          type="text"
+                          id="last_name"
+                          name="last_name"
+                          placeholder="Last Name"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          required
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    
 
                     {/* Phone */}
                     <div className="space-y-2">
@@ -312,6 +295,24 @@ const Login = () => {
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           pattern="[0-9]{10}"
+                          required
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Age */}
+                    <div className="space-y-2">
+                      <Label htmlFor="age">Age</Label>
+                      <div className="relative">
+                        <UserRound className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                        <Input
+                          type="number"
+                          id="age"
+                          name="age"
+                          placeholder="Please enter your age"
+                          value={age}
+                          onChange={(e) => setAge(Number(e.target.value))}
                           required
                           className="pl-10"
                         />
@@ -441,7 +442,7 @@ const Login = () => {
                   {/* Admin */}
                   <div className="bg-white p-3 rounded border-l-4 border-green-500 shadow-sm">
                     <h3 className="font-medium text-gray-700">Admin</h3>
-                    <p className="text-gray-600 text-sm"><span className="font-medium">Username:</span> admin@test.com</p>
+                    <p className="text-gray-600 text-sm"><span className="font-medium">Username:</span> admin1@test.com</p>
                     <p className="text-gray-600 text-sm"><span className="font-medium">Password:</span> admin12345</p>
                   </div>
 

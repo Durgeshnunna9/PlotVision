@@ -21,7 +21,7 @@ const Header = () => {
       <div className="flex items-center gap-4">
         <div className="text-sm">
           <span className="text-muted-foreground">Hello,</span>{' '}
-          <span className="font-medium text-foreground">{user?.name}</span>
+          <span className="font-medium text-foreground">{user?.firstName} {user.lastName}</span>
         </div>
         
         <DropdownMenu>

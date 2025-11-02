@@ -8,6 +8,7 @@ import { UserCheck, Building2, Users, ClipboardList, Star, TrendingUp } from 'lu
 import { supabase } from '@/lib/supabaseClient';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+
 import {
   Dialog,
   DialogContent,
@@ -18,9 +19,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
 
 const ManagerDashboard = () => {
-  const managerId = 'manager1'; // Replace with auth user ID if using Supabase Auth
+  const { user } = useAuth();
+   // Replace with auth user ID if using Supabase Auth
 
   const [agents, setAgents] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
@@ -44,18 +47,42 @@ const ManagerDashboard = () => {
   const [customTask, setCustomTask] = useState("");
 
   useEffect(() => {
-    if (!managerId) return;
+    if (!user?.id) return; // wait until auth is ready
 
     const fetchAgents = async () => {
-      const { data, error } = await supabase
-        .from("agents")
-        .select("id, name")
-        .eq("manager_id", managerId);
+      // Step 1: get agent IDs from manager_agents table
+      const { data: assignedAgents, error: relError } = await supabase
+        .from("manager_agents")
+        .select("agent_id")
+        .eq("manager_id", user.id);
 
-      if (!error && data) setAgents(data);
+      if (relError) {
+        console.error("Error fetching assigned agents:", relError);
+        return;
+      }
+
+      if (!assignedAgents?.length) {
+        setAgents([]);
+        return;
+      }
+
+      // Step 2: fetch agent data using the IDs
+      const agentIds = assignedAgents.map((a) => a.agent_id);
+      const { data: agentProfiles, error: agentError } = await supabase
+        .from("agents")
+        .select("id, name") // customize as per your schema
+        .in("id", agentIds);
+
+      if (agentError) {
+        console.error("Error fetching agent profiles:", agentError);
+        return;
+      }
+
+      setAgents(agentProfiles || []);
     };
+
     fetchAgents();
-  }, [managerId]);
+  }, [user?.id]);
 
   // Handle assign task
   const handleAssign = async () => {
@@ -134,45 +161,46 @@ const ManagerDashboard = () => {
     tasks.filter(t => t.status !== 'completed').length,
     previousOpenTasksCount
   );
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     setLoading(true);
 
-      // 1️⃣ Fetch agents
-      const { data: agentsData } = await supabase
-        .from('agents')
-        .select('*')
-        .eq('manager_id', managerId);
-      setAgents(agentsData || []);
+  //     // 1️⃣ Fetch agents
+  //     // const { data: agentsData } = await supabase
+  //     //   .from('manager_agents')
+  //     //   .select('*')
+  //     //   .eq('manager_id', managerId);
+  //     // setAgents(agentsData || []);
+  //     // console.log(agentsData);
 
-      const agentIds = agentsData?.map(a => a.id) || [];
+  //     // const agentIds = agentsData?.map(a => a.id) || [];
 
-      // 2️⃣ Fetch properties assigned to agents
-      const { data: propertiesData } = await supabase
-        .from('properties')
-        .select('*')
-        .in('assigned_agent_id', agentIds);
-      setProperties(propertiesData || []);
+  //     // 2️⃣ Fetch properties assigned to agents
+  //     const { data: propertiesData } = await supabase
+  //       .from('properties')
+  //       .select('*')
+  //       // .in('assigned_agent_id', agentIds);
+  //     setProperties(propertiesData || []);
 
-      // 3️⃣ Fetch clients assigned to agents
-      const { data: clientsData } = await supabase
-        .from('clients')
-        .select('*')
-        .in('assigned_agent_id', agentIds);
-      setClients(clientsData || []);
+  //     // 3️⃣ Fetch clients assigned to agents
+  //     const { data: clientsData } = await supabase
+  //       .from('clients')
+  //       .select('*')
+  //       .in('assigned_agent_id', agentIds);
+  //     setClients(clientsData || []);
 
-      // 4️⃣ Fetch tasks assigned to agents
-      const { data: tasksData } = await supabase
-        .from('tasks')
-        .select('*')
-        .in('assigned_to', agentIds);
-      setTasks(tasksData || []);
+  //     // 4️⃣ Fetch tasks assigned to agents
+  //     const { data: tasksData } = await supabase
+  //       .from('tasks')
+  //       .select('*')
+  //       .in('assigned_to', agentIds);
+  //     setTasks(tasksData || []);
 
-      setLoading(false);
-    };
+  //     setLoading(false);
+  //   };
 
-    fetchData();
-  }, [managerId]);
+  //   fetchData();
+  // }, [managerId]);
 
   const teamPerformance = agents.map(agent => ({
     name: agent.name.split(' ')[0],

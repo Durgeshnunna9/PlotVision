@@ -31,6 +31,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
+        
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -142,7 +143,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            <Route 
+            {/* <Route 
               path="/settings" 
               element={
                 <ProtectedRoute roles={['admin']}>
@@ -150,7 +151,7 @@ const App = () => (
                 </ProtectedRoute>
                 
               } 
-            />
+            /> */}
             
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
