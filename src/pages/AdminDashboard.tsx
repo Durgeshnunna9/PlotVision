@@ -21,109 +21,146 @@ const AdminDashboard = () => {
   });
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--success))', 'hsl(var(--warning))'];
+
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: propsData } = await supabase.from("properties").select("*");
-      const { data: clientsData } = await supabase.from("clients").select("*");
-      const { data: agentsData } = await supabase.from("agents").select("*");
+    Promise.all([
+      fetch("http://localhost:8090/properties/all").then(res => res.json()),
+      fetch("http://localhost:8090/agents/all").then(res => res.json()),
+      fetch("http://localhost:8090/sales/all").then(res => res.json())
+    ])
+      .then(([propertiesData, agentsData, salesData]) => {
+        setProperties(propertiesData);
+        setAgents(agentsData);
+        setTotalRevenue(salesData)
 
-      const props = propsData || [];
-      const cls = clientsData || [];
-      const ags = agentsData || [];
+        // ✅ Calculate total revenue for the current month
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
 
-      setProperties(props);
-      setClients(cls);
-      setAgents(ags);
+        const monthlyRevenue = salesData
+          .filter((sale) => {
+            const soldDate = new Date(sale.saleDate);
+            return (
+              soldDate.getMonth() === currentMonth &&
+              soldDate.getFullYear() === currentYear
+            );
+          })
+          .reduce((sum, sale) => sum + sale.saleAmount, 0);
 
-      // Total revenue
-      const revenue = props.reduce((sum, p) => sum + (p.price || 0), 0);
-      setTotalRevenue(revenue);
-
-      // Example trend calculations: % change from last month
-      const lastMonthRevenue = props
-        .filter(
-          (p) =>
-            new Date(p.created_at).getMonth() === new Date().getMonth() - 1
-        )
-        .reduce((sum, p) => sum + (p.price || 0), 0);
-      const revenueTrend = lastMonthRevenue
-        ? ((revenue - lastMonthRevenue) / lastMonthRevenue) * 100
-        : 0;
-
-      const propsTrend =
-        props.length > 1 ? ((props.length - (props.length - 1)) / (props.length - 1)) * 100 : 0;
-      const clientsTrend =
-        cls.length > 1 ? ((cls.length - (cls.length - 1)) / (cls.length - 1)) * 100 : 0;
-      const agentsTrend =
-        ags.length > 1 ? ((ags.length - (ags.length - 1)) / (ags.length - 1)) * 100 : 0;
-
-      setAnalytics({
-        totalProperties: props.length,
-        totalClients: cls.length,
-        activeAgents: ags.filter((a) => a.is_active).length,
-        monthlyRevenue: revenue,
-        trends: {
-          properties: propsTrend,
-          clients: clientsTrend,
-          agents: agentsTrend,
-          revenue: revenueTrend,
-        },
-      });
-    };
-
-    fetchData();
+        setAnalytics({
+          totalProperties: propertiesData.length,
+          activeAgents: agentsData.length,
+          monthlyRevenue,
+        });
+      })
+      .catch(console.error);
   }, []);
-  // Fetch data from Supabase
-  useEffect(() => {
-    const fetchData = async () => {
-      // Properties
-      const { data: propsData } = await supabase.from('properties').select('*');
-      setProperties(propsData || []);
-      console.log("all Data", propsData);
 
-      // Clients
-      const { data: clientsData } = await supabase.from('clients').select('*');
-      setClients(clientsData || []);
 
-      // Agents
-      const { data: agentsData } = await supabase.from('agents').select('*');
-      setAgents(agentsData || []);
 
-      // Analytics
-      const totalProperties = propsData?.length || 0;
-      const totalClients = clientsData?.length || 0;
-      const activeAgents = agentsData?.filter(a => a.is_active).length || 0;
-      const monthlyRevenue = propsData?.reduce((sum, p) => sum + (p.price || 0), 0) || 0;
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     const { data: propsData } = await supabase.from("properties").select("*");
+  //     const { data: clientsData } = await supabase.from("clients").select("*");
+  //     const { data: agentsData } = await supabase.from("agents").select("*");
 
-      // Monthly sales data for chart
-      const salesDataMap: Record<string, number> = {};
-      propsData?.forEach((p) => {
-        const month = new Date(p.created_at).toLocaleString('default', { month: 'short' });
-        salesDataMap[month] = (salesDataMap[month] || 0) + (p.price || 0);
-      });
-      const salesData = Object.entries(salesDataMap).map(([month, sales]) => ({ month, sales }));
+  //     const props = propsData || [];
+  //     const cls = clientsData || [];
+  //     const ags = agentsData || [];
 
-      // Property types pie chart
-      const typeCount: Record<string, number> = {};
-      propsData?.forEach((p) => {
-        typeCount[p.property_type] = (typeCount[p.property_type] || 0) + 1;
+  //     setProperties(props);
+  //     setClients(cls);
+  //     setAgents(ags);
+
+  //     // Total revenue
+  //     const revenue = props.reduce((sum, p) => sum + (p.price || 0), 0);
+  //     setTotalRevenue(revenue);
+
+  //     // Example trend calculations: % change from last month
+  //     const lastMonthRevenue = props
+  //       .filter(
+  //         (p) =>
+  //           new Date(p.created_at).getMonth() === new Date().getMonth() - 1
+  //       )
+  //       .reduce((sum, p) => sum + (p.price || 0), 0);
+  //     const revenueTrend = lastMonthRevenue
+  //       ? ((revenue - lastMonthRevenue) / lastMonthRevenue) * 100
+  //       : 0;
+
+  //     const propsTrend =
+  //       props.length > 1 ? ((props.length - (props.length - 1)) / (props.length - 1)) * 1 00 : 0;
+  //     const clientsTrend =
+  //       cls.length > 1 ? ((cls.length - (cls.length - 1)) / (cls.length - 1)) * 100 : 0;
+  //     const agentsTrend =
+  //       ags.length > 1 ? ((ags.length - (ags.length - 1)) / (ags.length - 1)) * 100 : 0;
+
+  //     setAnalytics({
+  //       totalProperties: props.length,
+  //       totalClients: cls.length,
+  //       activeAgents: ags.filter((a) => a.is_active).length,
+  //       monthlyRevenue: revenue,
+  //       trends: {
+  //         properties: propsTrend,
+  //         clients: clientsTrend,
+  //         agents: agentsTrend,
+  //         revenue: revenueTrend,
+  //       },
+  //     });
+  //   };
+
+  //   fetchData();
+  // }, []);
+  // // Fetch data from Supabase
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     // Properties
+  //     const { data: propsData } = await supabase.from('properties').select('*');
+  //     setProperties(propsData || []);
+  //     console.log("all Data", propsData);
+
+  //     // Clients
+  //     const { data: clientsData } = await supabase.from('clients').select('*');
+  //     setClients(clientsData || []);
+
+  //     // Agents
+  //     const { data: agentsData } = await supabase.from('agents').select('*');
+  //     setAgents(agentsData || []);
+
+  //     // Analytics
+  //     const totalProperties = propsData?.length || 0;
+  //     const totalClients = clientsData?.length || 0;
+  //     const activeAgents = agentsData?.filter(a => a.is_active).length || 0;
+  //     const monthlyRevenue = propsData?.reduce((sum, p) => sum + (p.price || 0), 0) || 0;
+
+  //     // Monthly sales data for chart
+  //     const salesDataMap: Record<string, number> = {};
+  //     propsData?.forEach((p) => {
+  //       const month = new Date(p.created_at).toLocaleString('default', { month: 'short' });
+  //       salesDataMap[month] = (salesDataMap[month] || 0) + (p.price || 0);
+  //     });
+  //     const salesData = Object.entries(salesDataMap).map(([month, sales]) => ({ month, sales }));
+
+  //     // Property types pie chart
+  //     const typeCount: Record<string, number> = {};
+  //     propsData?.forEach((p) => {
+  //       typeCount[p.property_type] = (typeCount[p.property_type] || 0) + 1;
         
-      });
-      const propertyTypes = Object.entries(typeCount).map(([type, count]) => ({ type, count }));
+  //     });
+  //     const propertyTypes = Object.entries(typeCount).map(([type, count]) => ({ type, count }));
       
 
-      setAnalytics({
-        totalProperties,
-        totalClients,
-        activeAgents,
-        monthlyRevenue,
-        salesData,
-        propertyTypes,
-      });
-    };
+  //     setAnalytics({
+  //       totalProperties,
+  //       totalClients,
+  //       activeAgents,
+  //       monthlyRevenue,
+  //       salesData,
+  //       propertyTypes,
+  //     });
+  //   };
 
-    fetchData();
-  }, []);
+  //   fetchData();
+  // }, []);
 
   const featuredProperties = properties.filter(p => p.featured).slice(0, 3);
   const recentClients = clients.slice(0, 5);
@@ -139,7 +176,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Total Properties"
           value={analytics.totalProperties}
@@ -150,7 +187,7 @@ const AdminDashboard = () => {
           }}
           color="primary"
         />
-        <StatCard
+        {/* <StatCard
           title="Total Clients"
           value={analytics.totalClients}
           icon={Users}
@@ -159,7 +196,7 @@ const AdminDashboard = () => {
             isPositive: (analytics.trends?.clients || 0) >= 0,
           }}
           color="success"
-        />
+        /> */}
         <StatCard
           title="Active Agents"
           value={analytics.activeAgents}
@@ -172,7 +209,7 @@ const AdminDashboard = () => {
         />
         <StatCard
           title="Monthly Revenue"
-          value={`${(analytics.monthlyRevenue / 1000000).toFixed(1)}`}
+          value={`${(analytics.monthlyRevenue).toFixed(1)}`}
           icon={IndianRupee}
           trend={{
             value: Number(analytics.trends?.revenue?.toFixed(1) || 0),
