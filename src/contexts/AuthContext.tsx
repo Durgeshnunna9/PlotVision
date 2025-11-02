@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
-      console.log("Raw user from backend:", user);
+
       let agent = null;
       if (agentResponse.ok) {
         agent = await agentResponse.json();
@@ -141,9 +141,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // ✅ Save both to context + local storage
       const userData = {
         id: user.userId,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        name: `${user.first_name} ${user.last_name}`,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: `${user.firstName} ${user.lastName}`,
         age: user.age,
         mobileNumber: user.mobile_number,
         email: user.email,
@@ -179,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // ✅ logout
   const logout = async () => {
-    await fetch("http://localhost:8090/api/auth/logout", { method: "POST" });
+    // await fetch("http://localhost:8090/api/auth/logout", { method: "POST" });
     localStorage.removeItem("user");
     setUser(null);
     // setSession(null);
