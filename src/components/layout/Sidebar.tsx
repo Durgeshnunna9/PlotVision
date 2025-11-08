@@ -9,7 +9,8 @@ import {
   ClipboardList,
   TrendingUp,
   Settings,
-  UsersRound
+  UsersRound,
+  ListTodo
 } from 'lucide-react';
 import { IconUsersGroup } from '@tabler/icons-react';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -96,6 +97,12 @@ const sidebarItems: SidebarItem[] = [
     path: '/reports',
     roles: ['ADMIN', 'MANAGER']
   },
+  {
+    icon: ListTodo,
+    label: 'Tasks',
+    path: '/tasks',
+    roles: ['AGENT', 'MANAGER']
+  }
   // {
   //   icon: Settings,
   //   label: 'Settings',

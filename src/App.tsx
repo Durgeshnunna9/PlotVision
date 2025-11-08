@@ -143,6 +143,11 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route path="/tasks" element={
+              <ProtectedRoute roles={['agent']}>
+                <Tasks />
+              </ProtectedRoute>
+            } />
             {/* <Route 
               path="/settings" 
               element={

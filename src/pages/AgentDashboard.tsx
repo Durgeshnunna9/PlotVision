@@ -2,8 +2,9 @@ import StatCard from '@/components/dashboard/StatCard';
 import PropertyCard from '@/components/dashboard/PropertyCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Users, ClipboardList, TrendingUp, Calendar, Phone, Mail, MapPin, Edit, Eye, LandPlot, Trash2 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Building2, Users, ClipboardList, TrendingUp, Calendar, Phone, Mail, MapPin, Edit, Eye, LandPlot, Trash2, DollarSign, IndianRupee, ChartNoAxesColumnIncreasing } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Bar,BarChart } from 'recharts';
+import { AreaChart, Area,  } from 'recharts';
 import { useEffect, useState } from "react";
 import { useAuth } from '@/contexts/AuthContext';
 import axios from 'axios';
@@ -46,45 +47,39 @@ const AgentDashboard = () => {
   }
 
   // --- Load Agent ID from localStorage or user context ---
-  const [agentId, setAgentId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
 
-  useEffect(() => {
-    const storedAgent = localStorage.getItem("agent");
-    const storedUser = localStorage.getItem("user");
-    let derivedAgentId: number | null = null;
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
 
-    if (storedAgent) {
-      try {
-        const parsed = JSON.parse(storedAgent);
-        if (parsed?.agentId) derivedAgentId = parsed.agentId;
-      } catch {
-        console.warn("Invalid agent data in localStorage");
+  if (storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser);
+
+      if (parsedUser?.userId) {
+        setUserId(parsedUser.userId);
+        console.log("✅ Loaded user from localStorage:", parsedUser);
+      } else {
+        console.warn("⚠️ User data missing userId — clearing localStorage...");
+        localStorage.removeItem("user");
       }
+    } catch (err) {
+      console.error("❌ Invalid user data in localStorage:", err);
+      localStorage.removeItem("user");
     }
+  } else {
+    console.warn("⚠️ No stored user found — skipping data fetch.");
+  }
+}, []);
 
-    if (!derivedAgentId && storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        if (parsedUser?.agentId) derivedAgentId = parsedUser.agentId;
-      } catch {
-        console.warn("Invalid user data in localStorage");
-      }
-    }
-
-    if (derivedAgentId) {
-      setAgentId(derivedAgentId);
-    } else {
-      console.warn("No agentId found — skipping performance data fetch");
-    }
-  }, []);
 
   // --- Fetch Performance Data from Backend ---
   useEffect(() => {
-    if (!agentId) return;
+    if (!userId) return;
 
     const fetchPerformanceDataFromBackend = async () => {
       try {
-        const res = await fetch(`http://localhost:8090/api/performance/agent/${agentId}`, {
+        const res = await fetch(`http://localhost:8090/api/performance/user/${userId}/monthly`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -115,15 +110,15 @@ const AgentDashboard = () => {
     };
 
     fetchPerformanceDataFromBackend();
-  }, [agentId]);
+  }, [userId]);
 
   // Fetch Dashboard Stats
   useEffect(() => {
-    if (!agentId) return;
+    if (!userId) return;
 
     const fetchDashboardStats = async () => {
       try {
-        const res = await fetch(`http://localhost:8090/api/dashboard/stats/${agentId}`);
+        const res = await fetch(`http://localhost:8090/api/dashboard/stats/${userId}`);
         if (!res.ok) {
           console.warn("Dashboard stats fetch failed:", res.status);
           return;
@@ -148,19 +143,8 @@ const AgentDashboard = () => {
     };
 
     fetchDashboardStats();
-  }, [agentId]);
+  }, [userId]);
 
-  useEffect(() => {
-    const fetchAgentProperties = async () => {
-      try {
-        const response = await axios.get(`/api/dashboard/agent/${agentId}/latest-properties`);
-        setAgentProperties(response.data);
-      } catch (error) {
-        console.error("Error fetching agent properties:", error);
-      }
-    };
-    fetchAgentProperties();
-  }, [agentId]);
   // --- Task color helpers ---
   const getTaskPriorityColor = (priority: string) => {
     switch (priority) {
@@ -195,13 +179,13 @@ const AgentDashboard = () => {
         <p className="text-muted-foreground">Manage your listings, clients, and track your performance.</p>
       </div>
 
-      <LineChart data={data}>
+      {/* <LineChart data={data}>
         <XAxis dataKey="month" />
         <YAxis />
         <Tooltip />
         <Line type="monotone" dataKey="revenue" stroke="#8884d8" strokeWidth={3} />
         <Line type="monotone" dataKey="commission" stroke="#82ca9d" strokeWidth={3} />
-      </LineChart>
+      </LineChart> */}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
@@ -229,38 +213,88 @@ const AgentDashboard = () => {
       </div>
 
       {/* Performance Chart */}
-      <Card className="card-premium">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              My Performance Trend
-            </CardTitle>
-          </CardHeader>
+      <Card className="card-premium p-5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+          <ChartNoAxesColumnIncreasing className="h-7 w-6"/>
+            My Performance Trend
+          </CardTitle>
+        </CardHeader>
           {/* Revenue / Commission Chart */}
-        <CardContent>
-          <h3 className="font-semibold mb-2">Revenue / Commission</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip
-                formatter={(value, name) => [
-                  `$${Number(value).toLocaleString()}`,
-                  name === "revenue" ? "Revenue" : "Commission"
-                ]}
-              />
-              <Line type="monotone" dataKey="revenue" stroke="hsl(var(--accent))" strokeWidth={3} />
-              <Line type="monotone" dataKey="commission" stroke="hsl(var(--primary))" strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
+          {/* <CardContent>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="rounded-full bg-muted p-4 mb-4">
+                <ClipboardList className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="font-medium text-lg mb-2">Coming Soon</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                This feature is currently under development and will be available shortly.
+              </p>
+            </div>
+          </CardContent> */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Revenue Chart */}
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <IndianRupee className="h-5 w-5" />
+                Revenue Trend
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value) => `₹${Number(value).toLocaleString()}`}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="hsl(var(--accent))" 
+                    fill="hsl(var(--accent))" 
+                    fillOpacity={0.3}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        {/* Deals Closed Chart */}
+          {/* Commission Chart */}
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Commission Trend
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value) => `₹${Number(value).toLocaleString()}`}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="commission" 
+                    stroke="hsl(var(--primary))" 
+                    fill="hsl(var(--primary))" 
+                    fillOpacity={0.3}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
       </Card>
 
       {/* Content Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Tasks & Reminders */}
         <Card className="card-premium">
           <CardHeader>
@@ -270,30 +304,42 @@ const AgentDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {agentTasks.map((task) => (
-                <div key={task.id} className="p-3 rounded-lg border border-border bg-card">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium">{task.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{task.dueDate}</span>
+            {agentTasks.length === 0 ? (
+              // Empty state
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <ClipboardList className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <h3 className="font-medium text-lg mb-1">No tasks yet</h3>
+                <p className="text-sm text-muted-foreground">
+                  You don't have any tasks assigned for today.
+                </p>
+              </div>
+            ) : (
+              // Tasks list
+              <div className="space-y-3">
+                {agentTasks.map((task) => (
+                  <div key={task.id} className="p-3 rounded-lg border border-border bg-card">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{task.title}</h4>
+                        <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">{task.dueDate}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Badge className={getTaskPriorityColor(task.priority)}>
+                          {task.priority}
+                        </Badge>
+                        <Badge variant="outline" className={getTaskStatusColor(task.status)}>
+                          {task.status}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <Badge className={getTaskPriorityColor(task.priority)}>
-                        {task.priority}
-                      </Badge>
-                      <Badge variant="outline" className={getTaskStatusColor(task.status)}>
-                        {task.status}
-                      </Badge>
-                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

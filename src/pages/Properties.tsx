@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, Plus, Search, Edit, Trash2, Eye, MapPin, Bed, Bath, Square, LandPlot } from 'lucide-react';
+import { Building2, Plus, Search, Edit, Trash2, Eye, MapPin, Bed, Bath, Square, LandPlot, CheckCircle, Building } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Modal } from '../components/ui/Modal';
 // import { supabase } from "@/lib/supabaseClient";
@@ -38,42 +38,37 @@ import {
 } from "@/components/ui/dialog"
 
 import { PropertyForm, PropertyFormData } from "../components/forms/PropertyForm";
-// import { PropertyForm } from "../components/forms/PropertyForm";
 
 interface Property{
+  footfall: string;
+  snackSpend: string;
+  propertyType: any;
+  storeModel: any;
+  storeSize: any;
+  storeDimensionsL: any;
+  storeDimensionsW: any;
+  roadFacing: any;
+  entryDirection: any;
+  cornerPiece: any;
+  cornerSide: any;
+  storePosition: any;
+  shutterL: any;
+  shutterW: any;
+  frontOffset: any;
+  parkingAvailability: any;
+  twoWCapacity: any;
+  fourWCapacity: any;
+  buildingAge: any;
+  buildingCondition: any;
+  waterSupply: any;
   user_id: string ;
   location: string ;
   distance: string ;
-  footfall_per_hour: number;
-  snack_spend: number ;
-  property_type: string;
-  store_model: string ;
-  store_size: number ;
-  store_length:  number ;
-  store_width:  number ;
-  road_facing: string ;
-  entry_direction: string ;
-  corner_peice: string ;
-  corner_side: string ;
-  store_position:string ;
-  shutter_length: number ;
-  shutter_width: number ;
-  front_offset: number ;
   setback: string ;
   floor: string;
-  parking_availability: string;
-  parking_capacity_2w: number;
-  parking_capacity_4w: number;
   washroom: string ;
   electricity: string ;
   generator: string ;
-  building_age: string ;
-  water: string ;
-  building_condition: string ;
-  landmark: string ;
-  owner_contacted: string;
-  rental_value: number;
-  about_property: string;
   facilities: string[];
   advantages: string[];
   parking_photos: File[];
@@ -97,13 +92,14 @@ const Properties = () => {
     const fetchProperties = async () => {
       if (!user) return;
       try{
-        const response = await fetch(`http://localhost:8090/properties/agent/${user.id}`, {
+        const response = await fetch(`http://localhost:8090/properties/agent/${user.userId}`, {
           method: "GET",
           headers: { "Content-Type": "application/json" }
         });
         if (!response.ok) throw new Error("Failed to get properties");
         const data = await response.json();
         setProperties(data || []);
+        console.log(data)
       }
       catch(error){
         console.error("Error fetching properties:", error);
@@ -112,11 +108,11 @@ const Properties = () => {
     };
     fetchProperties();
   },[user]);
-  const filteredProperties = properties.filter(property => {
-    const matchesSearch = property.location?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         property.landmark?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         property.about_property?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || property.property_type?.toLowerCase() === typeFilter.toLowerCase();
+  const filteredProperties = properties.filter(item => {
+    const matchesSearch =  
+                         item.property.landmark?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.property.aboutProperty?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === 'all' || item.property.propertyType?.toLowerCase() === typeFilter.toLowerCase();
 
     return matchesSearch && matchesType;
   });
@@ -131,7 +127,40 @@ const Properties = () => {
     }
   };
 
+  const BASE_URL = "http://localhost:8080";
+
+  const formatImageUrl = (url: string) => {
+    if (!url) return "";
+    if (url.startsWith("http") || url.startsWith("blob:") || url.startsWith("data:")) {
+      return url; // ✅ Already a usable URL
+    }
+    return `${BASE_URL}${url}`; // ✅ For relative URLs from backend
+  };
   
+  const formatMediaUrl = (url: string) => {
+    if (!url) return "";
+    
+    // ✅ Already a usable URL
+    if (url.startsWith("http") || url.startsWith("blob:") || url.startsWith("data:")) {
+      return url;
+    }
+  
+    // ✅ For relative paths returned from backend (e.g., /properties/8/video)
+    return `${BASE_URL}${url}`;
+  };
+  
+
+  // const videoResponse = await fetch(`http://localhost:8090/properties/${propertyId}/video`, {
+  //   method: "GET",
+  //   credentials: "include",
+  // });
+  
+  // if (videoResponse.ok) {
+  //   const blob = await videoResponse.blob();
+  //   const videoUrl = URL.createObjectURL(blob);
+  //   setVideo({ video: [videoUrl] }); // store this URL to render later
+  // }
+
 
   return (
     <div className="space-y-6 fade-in">
@@ -139,10 +168,10 @@ const Properties = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Properties</h1>
           <p className="text-muted-foreground">
-            {user?.role === 'agent' ? 'Manage your property listings' : 'Manage all property listings'}
+            {user?.role === 'AGENT' ? 'Manage your property listings' : 'Manage all property listings'}
           </p>
         </div>
-        {(user?.role === 'agent') && (
+        {(user?.role === 'AGENT') && (
           <div>
             <Button className="btn-primary" onClick={() => setShowPropertyForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -204,60 +233,78 @@ const Properties = () => {
 
       {/* Properties Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProperties.map((property) => (
+        {filteredProperties.map((item) =>{
+           const property = item.property; // ✅ unwrap nested object safely
+           const video = item.video;
+           const images = item.images;
+        
+          return (
           <Card key={property.id} className="property-card group">
             <div className="relative h-48 overflow-hidden">
               <img
-                src={property.property_photos?.[0] ?? "/placeholder.jpg"} // fallback if undefined or empty
+                src={images.property_photos?.[0] ?? "/placeholder.jpg"} // fallback if undefined or empty
                 alt={property.title ?? "Property Image"}                 // fallback alt
                 className="property-image w-full h-full object-cover group-hover:scale-110"
               />
-              {/* <Badge className={`absolute top-3 right-3 ${getStatusColor(property.status)}`}>
-                {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
-              </Badge> */}
+              <Badge
+                className={`absolute top-3 right-3 ${getStatusColor(property.status)}`}
+              >
+                {property.status
+                  ? property.status.charAt(0).toUpperCase() + property.status.slice(1)
+                  : "Unknown"}
+              </Badge>
               {property.featured && (
                 <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
                   Featured
                 </Badge>
               )}
             </div>
-            <CardContent className="p-4" >
-              <div className="space-y-3">
+            <CardContent className="p-5 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200">
+              <div className="space-y-4">
+                {/* ---------- Property Header ---------- */}
                 <div>
-                  <h3 className="font-semibold text-lg">{property.location}</h3>
-                  <div className="flex items-center text-muted-foreground text-sm">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    {property.landmark}
+                  <h3 className="font-bold text-xl text-gray-800">{property.location}</h3>
+                  <div className="flex items-center text-muted-foreground text-sm mt-1">
+                    <MapPin className="h-4 w-4 mr-1 text-primary" />
+                    {property.landmark || "No landmark"}
                   </div>
                 </div>
-                
+
+                {/* ---------- Model Badge ---------- */}
                 <div className="flex justify-between items-center">
-                  {/* <div className="text-2xl font-bold text-primary">
-                    ${property.price.toLocaleString()}
-                  </div> */}
-                  <Badge variant="outline" className="text-xs">
-                    {property.store_model}
+                  <Badge
+                    variant="outline"
+                    className="text-xs border-primary text-primary font-semibold rounded-full px-3 py-1 bg-primary/5"
+                  >
+                    {property.storeModel}
                   </Badge>
                 </div>
-                
-                <div className="flex justify-between text-sm text-muted-foreground">
+
+                {/* ---------- Size & Price ---------- */}
+                <div className="flex justify-between items-center text-sm text-gray-600">
                   <div className="flex items-center">
-                    <LandPlot className="h-5 w-5 mr-1" />
-                    {property.store_size} sqft
+                    <LandPlot className="h-5 w-5 mr-1 text-muted-foreground" />
+                    <span>{property.storeSize} sqft</span>
                   </div>
+                  {/* Optional price */}
+                  {/* <div className="text-lg font-semibold text-primary">
+                    ₹{property.price.toLocaleString()}
+                  </div> */}
                 </div>
 
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {property.about_property}
+                {/* ---------- About ---------- */}
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                  {property.aboutProperty || "No description available."}
                 </p>
 
-                <div className="flex gap-2 pt-2">
+                {/* ---------- Buttons ---------- */}
+                <div className="flex gap-2 pt-3">
+                  {/* View Button */}
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1"
+                    className="flex-1 border-gray-300 hover:border-primary hover:text-primary transition-all"
                     onClick={() => {
-                      // Open modal and set selected property
                       setSelectedProperty(property);
                       setShowViewModal(true);
                     }}
@@ -265,63 +312,83 @@ const Properties = () => {
                     <Eye className="h-4 w-4 mr-1" />
                     View
                   </Button>
-                  {showViewModal && selectedProperty && (
-                    <Modal
-                      isOpen={showViewModal}
-                      onClose={() => setShowViewModal(false)}
-                      title="Property Details"
-                      size="xl"
-                    >
-                      {/* Location & Distance */}
-                      <section className="mb-6 p-4 bg-white rounded shadow">
-                        <h2 className="text-xl font-semibold mb-4">Location & Distance</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="flex items-center gap-2">
-                            <PlaceIcon className="text-gray-600" />
-                            <span className="font-semibold">Location:</span>
-                            <span>{selectedProperty.location || "-"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapIcon className="text-gray-600" />
-                            <span className="font-semibold">Distance:</span>
-                            <span>{selectedProperty.distance || "-"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <GroupsIcon className="text-gray-600" />
-                            <span className="font-semibold">Footfall/hr:</span>
-                            <span>{selectedProperty.footfall_per_hour || "-"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <LocalCafeIcon className="text-gray-600" />
-                            <span className="font-semibold">Snack Spend:</span>
-                            <span>{selectedProperty.snack_spend || "-"}</span>
-                          </div>
+
+                  {/* Edit / Delete (role-based) */}
+                  {(user?.role === "admin" || (user?.role === "agent" && property.agentId === user.userId)) && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="hover:border-yellow-500 hover:text-yellow-600"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="hover:border-red-500 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {/* ---------- Modal ---------- */}
+                {showViewModal && selectedProperty && (
+                  <Modal
+                    isOpen={showViewModal}
+                    onClose={() => setShowViewModal(false)}
+                    title="Property Details"
+                    size="xl"
+                  >
+                    <div className="space-y-6">
+                      {/* ================== Location Section ================== */}
+                      <section className="p-4 bg-gray-50 rounded-xl border">
+                        <h2 className="text-lg font-semibold mb-3 text-gray-800">
+                          📍 Location & Distance
+                        </h2>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          {[
+                            ["Location", selectedProperty.location, <PlaceIcon />],
+                            ["Distance", selectedProperty.distance, <MapIcon />],
+                            ["Footfall/hr", selectedProperty.footfall, <GroupsIcon />],
+                            ["Snack Spend", selectedProperty.snackSpend, <LocalCafeIcon />],
+                          ].map(([label, value, icon], idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <span className="text-gray-600">{icon}</span>
+                              <span className="font-semibold">{label}:</span>
+                              <span>{value || "-"}</span>
+                            </div>
+                          ))}
                         </div>
                       </section>
 
-                      {/* Store Details */}
-                      <section className="mb-6 p-4 bg-white rounded shadow">
-                        <h2 className="text-xl font-semibold mb-4">Store Details</h2>
-                        <div className="grid grid-cols-2 gap-4">
+                      {/* ================== Store Details ================== */}
+                      <section className="p-4 bg-gray-50 rounded-xl border">
+                        <h2 className="text-lg font-semibold mb-3 text-gray-800">
+                          🏬 Store Details
+                        </h2>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
                           {[
-                            ["Property Type", selectedProperty.property_type, <StorefrontIcon />],
-                            ["Store Model", selectedProperty.store_model, <StorefrontIcon />],
-                            ["Store Size (ft.)", selectedProperty.store_size, <SquareFootIcon />],
-                            ["Store Length (ft.)", selectedProperty.store_length, <StraightenIcon />],
-                            ["Store Width (ft.)", selectedProperty.store_width, <StraightenIcon />],
-                            ["Road Facing", selectedProperty.road_facing, <DirectionsCarIcon />],
-                            ["Entry Direction", selectedProperty.entry_direction, <ExitToAppIcon />],
-                            ["Corner Piece", selectedProperty.corner_peice, <CropSquareIcon />],
-                            ["Corner Side", selectedProperty.corner_side, <CropSquareIcon />],
-                            ["Store Position", selectedProperty.store_position, <PlaceIcon />],
-                            ["Shutter Length (ft.)", selectedProperty.shutter_length, <StraightenIcon />],
-                            ["Shutter Width (ft.)", selectedProperty.shutter_width, <StraightenIcon />],
-                            ["Front Offset (ft.)", selectedProperty.front_offset, <StraightenIcon />],
+                            ["Property Type", selectedProperty.propertyType, <StorefrontIcon />],
+                            ["Store Model", selectedProperty.storeModel, <StorefrontIcon />],
+                            ["Store Size (ft.)", selectedProperty.storeSize, <SquareFootIcon />],
+                            ["Store Length (ft.)", selectedProperty.storeDimensionsL, <StraightenIcon />],
+                            ["Store Width (ft.)", selectedProperty.storeDimensionsW, <StraightenIcon />],
+                            ["Road Facing", selectedProperty.roadFacing, <DirectionsCarIcon />],
+                            ["Entry Direction", selectedProperty.entryDirection, <ExitToAppIcon />],
+                            ["Corner Piece", selectedProperty.cornerPiece, <CropSquareIcon />],
+                            ["Corner Side", selectedProperty.cornerSide, <CropSquareIcon />],
+                            ["Store Position", selectedProperty.storePosition, <PlaceIcon />],
+                            ["Shutter Length (ft.)", selectedProperty.shutterL, <StraightenIcon />],
+                            ["Shutter Width (ft.)", selectedProperty.shutterW, <StraightenIcon />],
+                            ["Front Offset (ft.)", selectedProperty.frontOffset, <StraightenIcon />],
                             ["Setback", selectedProperty.setback, <StraightenIcon />],
                             ["Floor", selectedProperty.floor, <LayersIcon />],
                           ].map(([label, value, icon], idx) => (
                             <div key={idx} className="flex items-center gap-2">
-                              {icon}
+                              <span className="text-gray-600">{icon}</span>
                               <span className="font-semibold">{label}:</span>
                               <span>{value || "-"}</span>
                             </div>
@@ -329,95 +396,179 @@ const Properties = () => {
                         </div>
                       </section>
 
-                      {/* Parking & Utilities */}
-                      <section className="mb-6 p-4 bg-white rounded shadow">
-                        <h2 className="text-xl font-semibold mb-4">Parking & Utilities</h2>
-                        <div className="grid grid-cols-2 gap-4">
+                      {/* ================== Parking ================== */}
+                      <section className="p-4 bg-gray-50 rounded-xl border">
+                        <h2 className="text-lg font-semibold mb-3 text-gray-800">
+                          🅿️ Parking
+                        </h2>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
                           {[
-                            ["Parking Available", selectedProperty.parking_availability, <LocalParkingIcon />],
-                            ["2W Capacity", selectedProperty.parking_capacity_2w, <TwoWheelerIcon />],
-                            ["4W Capacity", selectedProperty.parking_capacity_4w, <DirectionsCarIcon />],
-                            ["Washroom", selectedProperty.washroom, <WcIcon />],
-                            ["Electricity", selectedProperty.electricity, <BoltIcon />],
-                            ["Generator", selectedProperty.generator, <PowerIcon />],
-                            ["Water", selectedProperty.water, <WaterDropIcon />],
-                            ["Building Age", selectedProperty.building_age, <HistoryIcon />],
-                            ["Building Condition", selectedProperty.building_condition, <HomeRepairServiceIcon />],
+                            ["Parking Available", selectedProperty.parkingAvailability, <LocalParkingIcon />],
+                            ["2W Capacity", selectedProperty.twoWCapacity, <TwoWheelerIcon />],
+                            ["4W Capacity", selectedProperty.fourWCapacity, <DirectionsCarIcon />],
+                            ["Building Age", selectedProperty.buildingAge, <HistoryIcon />],
+                            ["Building Condition", selectedProperty.buildingCondition, <HomeRepairServiceIcon />],
                           ].map(([label, value, icon], idx) => (
                             <div key={idx} className="flex items-center gap-2">
-                              {icon}
+                              <span className="text-gray-600">{icon}</span>
                               <span className="font-semibold">{label}:</span>
                               <span>{value || "-"}</span>
                             </div>
                           ))}
                         </div>
                       </section>
-                      {/* ================== Image Galleries ================== */}
+
+                      {/* ================== Utilities ================== */}
+                      <section className="p-4 bg-gray-50 rounded-xl border">
+                        <h2 className="text-lg font-semibold mb-3 text-gray-800">⚙️ Utilities</h2>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            ["Washroom", selectedProperty.washroom, <WcIcon />],
+                            ["Electricity", selectedProperty.electricity, <BoltIcon />],
+                            ["Generator", selectedProperty.generator, <PowerIcon />],
+                            ["Water", selectedProperty.waterSupply, <WaterDropIcon />],
+                          ].map(([label, value, icon]) => (
+                            <div
+                              key={label}
+                              className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                                value
+                                  ? "bg-green-50 border-green-200 text-green-700"
+                                  : "bg-red-50 border-red-200 text-red-700"
+                              }`}
+                            >
+                              <span className="text-lg">{icon}</span>
+                              <span className="font-medium">{label}</span>
+                              <span className="ml-auto text-xs font-semibold tracking-wide uppercase">
+                                {value ? "Available" : "Not Available"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                      <section className='p-4 bg-gray-50 rounded-xl border'>
+                        {/* 🏙️ Location Highlights Section */}
+                        <div className="">
+                          <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-800 mb-4">
+                            <MapPin className="h-5 w-5 text-primary" />
+                            Location Highlights
+                          </h3>
+
+                          {/* Neighbourhood Facilities */}
+                          <div className="mb-4">
+                            <h4 className="text-md  text-gray-800 mb-3">
+                              Neighbourhood Facilities
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {(property.neighbourhoodFacilities
+                                ?.split(",")
+                                .map((item) => item.trim())
+                                .filter(Boolean) || []
+                              ).map((facility, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center px-3 py-1 text-sm rounded-full bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-all duration-200"
+                                >
+                                  <Building className="w-4 h-4 mr-1 text-blue-600" />
+                                  {facility}
+                                </span>
+                              ))}
+
+                              {!property.neighbourhoodFacilities && (
+                                <span className="text-gray-400 italic text-sm">No data available</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Location Advantages */}
+                          <div>
+                            <h4 className="text-md  text-gray-800 mb-3">
+                              Location Advantages
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {(property.locationAdvantages
+                                ?.split(",")
+                                .map((item) => item.trim())
+                                .filter(Boolean) || []
+                              ).map((adv, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center px-3 py-1 text-sm rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-all duration-200"
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-1 text-green-600" />
+                                  {adv}
+                                </span>
+                              ))}
+
+                              {!property.locationAdvantages && (
+                                <span className="text-gray-400 italic text-sm">No data available</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                      </section>
+
+
+                      {/* ================== Photos ================== */}
                       {[
                         { title: "Parking Photos", key: "parking_photos" },
                         { title: "Property Photos", key: "property_photos" },
                       ].map(({ title, key }) => (
-                        <section key={key} className="mb-6 p-4 bg-white rounded shadow">
-                          <h2 className="text-xl font-semibold mb-2">{title}</h2>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                            {selectedProperty[key]?.length > 0 ? (
-                              selectedProperty[key].map((url: string, idx: number) => (
+                        <section key={key} className="p-4 bg-gray-50 rounded-xl border">
+                          <h2 className="text-lg font-semibold mb-3 text-gray-800">{title}</h2>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {images?.[key]?.length > 0 ? (
+                              images?.[key].map((url: string, idx: number) => (
                                 <img
                                   key={idx}
-                                  src={url}
+                                  src={formatImageUrl(url)}
+                                  onError={() => console.log("Image not found:", formatImageUrl(url))}
                                   alt={`${title} ${idx}`}
-                                  className="rounded-md object-cover w-full h-32 shadow"
+                                  className="rounded-lg object-cover w-full h-32 shadow-sm hover:shadow-md transition"
                                 />
                               ))
                             ) : (
-                              <div className="text-gray-400 italic">No {title.toLowerCase()}</div>
+                              <p className="text-gray-400 italic">No {title.toLowerCase()}</p>
                             )}
                           </div>
                         </section>
                       ))}
 
                       {/* ================== Videos ================== */}
-                      <section className="mb-6 p-4 bg-white rounded shadow">
-                        <h2 className="text-xl font-semibold mb-2">Videos</h2>
-                        <div className="flex flex-col gap-4">
-                          {selectedProperty.video && selectedProperty.video.length > 0 ? (
-                            selectedProperty.video.map((item: File | string, idx: number) => {
-                              // If it's a File, create a temporary URL
-                              const src = typeof item === "string" ? item : URL.createObjectURL(item);
+                      <section className="p-4 bg-gray-50 rounded-xl border">
+                        <h2 className="text-lg font-semibold mb-3 text-gray-800">🎥 Videos</h2>
+
+                        <div className="flex flex-col gap-3">
+                          {video?.video && video.video.length > 0 ? (
+                            video.video.map((item: File | string, idx: number) => {
+                              // 🧠 Determine the video source
+                              const src =
+                                typeof item === "string"
+                                  ? formatMediaUrl(item)
+                                  : URL.createObjectURL(item);
 
                               return (
                                 <video
                                   key={idx}
                                   controls
-                                  className="rounded-md w-full max-h-64 mx-auto shadow"
+                                  className="rounded-lg w-full max-h-64 shadow-sm hover:shadow-md transition"
                                   src={src}
                                 />
                               );
                             })
                           ) : (
-                            <div className="text-gray-400 italic">No Videos</div>
+                            <p className="text-gray-400 italic">No Videos</p>
                           )}
                         </div>
                       </section>
-                    </Modal>
-                  )}
-
-
-                  {(user?.role === 'admin' || (user?.role === 'agent' && property.agentId === user.id)) && (
-                    <>
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
+                    </div>
+                  </Modal>
+                )}
               </div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       {filteredProperties.length === 0 && (

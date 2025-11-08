@@ -1,192 +1,141 @@
-// import { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-
-// interface User extends SupabaseUser {
-//   avatar_url?: string | null; // correct
-//   // avatar_url(avatar_url: any): unknown;
-//   name?: string;
-//   role?: "admin" | "agent" | "manager" | string;
-// }
-
 interface User {
-  id: number;
+  userId: number;
   firstName: string;
   lastName: string;
-  name: string;
   age: number;
   mobileNumber: string;
   email: string;
-  role: "admin" | "agent" | "manager" | string;
+  role: "ADMIN" | "AGENT" | "MANAGER" | string;
+  rating: number;
 }
-
 
 interface AuthContextType {
   user: User | null;
-  // session: Session | null;
-  login: (
-    email: string,
-    password: string
-  ) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   isLoading: boolean;
+  logStatus: string; // 👈 to trace internal status
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  // const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [logStatus, setLogStatus] = useState("Initializing...");
 
-  // ✅ helper for fetching profile
-  // const loadUserProfile = async (supabaseUser: SupabaseUser) => {
-  //   try {
-  //     const { data: profile, error } = await supabase
-  //       .from("profiles")
-  //       .select("*")
-  //       .eq("id", supabaseUser.id)
-  //       .maybeSingle();
-  
-  //     if (!profile) {
-  //       // create a default profile for new users
-  //       const { error: insertError } = await supabase.from("profiles").insert({
-  //         id: supabaseUser.id,
-  //         full_name: supabaseUser.user_metadata?.full_name,
-  //         phone: supabaseUser.user_metadata?.phone ? parseInt(supabaseUser.user_metadata.phone) : 0,
-  //         avatar_url: supabaseUser.user_metadata?.avatar_url ?? null,
-  //       });
-  
-  //       if (insertError) console.error("Profile creation error:", insertError.message);
-        
-  //       // Create default agent role
-  //       await supabase.from("user_roles").insert({
-  //         user_id: supabaseUser.id,
-  //         role: "agent"
-  //       });
-  //     }
-
-  //     // Fetch user role from user_roles table
-  //     const { data: roleData } = await supabase
-  //       .from("profiles")
-  //       .select("role")
-  //       .eq("id", supabaseUser.id)
-  //       .maybeSingle();
-  
-  //     setUser({
-  //       name: profile?.full_name ?? supabaseUser.user_metadata?.full_name ?? supabaseUser.email,
-  //       role: (roleData?.role as "admin" | "agent" | "manager") ?? "agent",
-       
-  //     });
-  //   } catch (err) {
-  //     console.error("Unexpected error loading profile:", err);
-  //     setUser({
-  //       id: supabaseUser.id,
-  //       email: supabaseUser.email ?? "",
-  //       name: profile?.full_name ?? supabaseUser.user_metadata?.full_name ?? supabaseUser.email,
-  //       role: (roleData?.role as "admin" | "agent" | "manager") ?? "agent",
-  //     });
-      
-  //   }
-  // };
-
-  // ✅ initialize session once
+  // --- Load user from DB or fallback to localStorage ---
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    console.log("Loading user from localStorage:", savedUser);
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    console.log("User Logged In:", user);
-    setIsLoading(false);
-  }, []);
-  
+    const initUser = async () => {
+      setIsLoading(true);
+      setLogStatus("Starting user initialization...");
 
-  // ✅ login
+      try {
+        // ✅ Try reading from localStorage first
+        const cachedUser = localStorage.getItem("user");
+        let parsedUser: User | null = cachedUser ? JSON.parse(cachedUser) : null;
+
+        if (parsedUser?.userId) {
+          setLogStatus("Found cached user. Verifying with backend...");
+          // ✅ Verify user still exists in DB
+          const verify = await fetch(`http://localhost:8090/users/${parsedUser.userId}`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          });
+
+          if (verify.ok) {
+            const freshUser = await verify.json();
+            setUser(freshUser);
+            setLogStatus("User verified successfully from DB.");
+          } else {
+            setLogStatus(`User verification failed with status ${verify.status}. Removing cache.`);
+            localStorage.removeItem("user");
+            setUser(null);
+          }
+        } else {
+          setLogStatus("No cached user found. User is not logged in.");
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("User initialization failed:", err);
+        setLogStatus("Error during initialization. See console for details.");
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initUser();
+  }, []);
+
+  // --- Login ---
   const login = async (email: string, password: string) => {
     setIsLoading(true);
+    setLogStatus("Attempting login...");
+  
     try {
+      // 🔹 1. Send login request
       const response = await fetch("http://localhost:8090/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: "include", // keep if you’ll add sessions later
+        credentials: "include",
       });
   
+      // 🔹 2. Handle invalid credentials
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
+        const message = error.error || "Invalid email or password";
+        setLogStatus(`Login failed: ${message}`);
         setIsLoading(false);
-        return { success: false, error: error.message || "Login failed" };
+        return { success: false, error: message };
       }
   
+      // 🔹 3. Parse and normalize user data
       const user = await response.json();
-      console.log("User Logged In:", user);
+      setLogStatus("Login successful. Preparing session...");
   
-      // ✅ Fetch Agent by User ID
-      const agentResponse = await fetch(`http://localhost:8090/agents/user/${user.userId}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-      console.log("Raw user from backend:", user);
-      let agent = null;
-      if (agentResponse.ok) {
-        agent = await agentResponse.json();
-        console.log("Agent data fetched:", agent);
-      } else {
-        console.warn("Agent not found for user ID:", user.userId);
-      }
-  
-      // ✅ Save both to context + local storage
-      const userData = {
-        id: user.userId,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        name: `${user.first_name} ${user.last_name}`,
-        age: user.age,
-        mobileNumber: user.mobile_number,
-        email: user.email,
-        role: user.role || "AGENT",
+      const normalizedUser = {
+        userId: user.userId ?? user.id ?? null,
+        firstName: user.firstName ?? "",
+        lastName: user.lastName ?? "",
+        age: user.age ?? null,
+        mobileNumber: user.mobileNumber ?? user.mobile_number ?? "",
+        email: user.email ?? "",
+        role: user.role ?? "AGENT",
+        rating: user.rating ?? 0,
+        name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
       };
   
-      setUser(userData);
-      localStorage.setItem("user", JSON.stringify(userData));
+      // 🔹 4. Save user in state and localStorage
+      setUser(normalizedUser);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
   
-      if (agent) {
-        localStorage.setItem("agent", JSON.stringify(agent));
-      }
-  
+      console.log("✅ User Logged In:", normalizedUser);
+      setLogStatus("User logged in successfully.");
       setIsLoading(false);
-      console.log("User Logged In:", userData);
+  
       return { success: true };
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("❌ Login error:", err);
+      setLogStatus("Network or server error during login.");
       setIsLoading(false);
-      return { success: false, error: "Network error" };
+      return { success: false, error: "Network or server error" };
     }
   };
-
-  // const fetchUser = async (userId: string) => {
-  //   const response = await fetch(`http://localhost:8090/users/${userId}`, {
-  //     method: "GET",
-  //     headers: { "Content-Type": "application/json" }
-  //   });
-  //   if (!response.ok) throw new Error("Failed to fetch user");
-  //   const user = await response.json();
-  //   return user;
-  // };
-
-  // ✅ logout
+  
+  // --- Logout ---
   const logout = async () => {
-    await fetch("http://localhost:8090/api/auth/logout", { method: "POST" });
+    setLogStatus("Logging out...");
     localStorage.removeItem("user");
     setUser(null);
-    // setSession(null);
-  };
+    setLogStatus("Logged out successfully.");
+  };  
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, logStatus }}>
       {children}
     </AuthContext.Provider>
   );
